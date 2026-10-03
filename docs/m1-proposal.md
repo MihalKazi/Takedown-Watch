@@ -1,14 +1,50 @@
-# M1 proposal — awaiting review
+# M1 proposal — implemented
 
-Status: proposed, NOT confirmed. No code written. Git repo initialised, nothing committed.
+Status: confirmed and built. Pipeline, schema, and site exist and run locally. Committed to
+`github.com/MihalKazi/Takedown-Watch`. Not yet deployed publicly (deploy deferred until local
+is solid — see Known gaps below). No diffing/events yet (that's M2, out of scope here).
 
-## Open decisions (need answers before code)
+## Current state (as of 2026-10-03)
 
-1. **Site stack.** CLAUDE.md says Astro 5 + TS + Tailwind + Zod, monorepo `pipeline/ data/ web/`. kickoff-prompt.md says Jinja2 → `dist/`, no JS toolchain. CLAUDE.md edited later. Recommendation: monorepo; pipeline emits `data/v1/*.json`; Astro builds with relative asset paths so `dist/` opens from disk.
-2. **`archive_url` on `snapshot` breaks invariant 6** (append-only) — SPN completes minutes/hours after capture. Recommendation: separate `archive_attempt` table keyed by `snapshot_id`; coverage gap = snapshot with no `ok` row.
-3. **`check` table** (kickoff only, not in CLAUDE.md; `CHECK` is a SQL reserved word). Proposal: name it `fetch_attempt` — one row per HTTP attempt of any kind, retries included.
-4. **Snapshot vs fetch.** Snapshot only for 2xx HTML documents. 404/5xx/timeout/CF challenge live in `fetch_attempt` only; M2 GONE detection reads that.
-5. Dependency manager: `uv` (default).
+Last local crawl: 7,071 articles discovered, 6,285 captured, across 13 of 18 configured outlets.
+Full breakdown: `cd pipeline && uv run tw stats`.
+
+### Known gaps (tracked, not blocking M2)
+
+- **4 of 18 outlets capture 0 articles**, each a genuine outlet-side or anti-bot issue, not a
+  config bug:
+  - `dailynayadiganta` — outlet's own sitemap index points to a vendor demo domain
+    (`demo.ccdrbd.org`) that does not resolve. Not fixable on our end.
+  - `jagonews24`, `kalerkantho` — sitemap/homepage return 403 even with an honest UA
+    (Cloudflare challenge). Flagged `needs_js: true` in `outlets.yaml`; real fix needs a
+    Playwright fallback fetch path, which does not exist yet. Deferred — low priority relative
+    to finishing M1 basics.
+  - `thedissent` — no RSS, no sitemap, robots.txt lists none. Would need homepage/category
+    listing-page scraping (a new discovery mode), not a config fix. Deferred.
+  - `bssnews` was in this state too; fixed by adding its sitemap URL (it was discoverable, just
+    missing from `outlets.yaml`).
+- **bn capture rate is nominally lower than en** (~83% vs ~100% in the aggregate `coverage.json`
+  numbers), but this is **not a bug**: it's accounted for entirely by two outlets —
+  `bd-pratidin` (robots.txt itself returns 403 behind a Cloudflare challenge; per RFC 9309
+  §2.3.1.4 the fetcher correctly treats an unreachable robots.txt as disallow-all — this is
+  invariant 5, polite crawling, working as intended) and `jugantor` (intermittent
+  `cf_challenge` outcomes on article fetches, already retried). All other bn outlets capture at
+  or near 100%. No code change warranted; bypassing robots.txt to "fix" this would violate the
+  crawling-ethics invariant.
+- **Public deploy not done yet** — no Cloudflare Pages config, no public mirror repo. Deferred
+  on purpose: build and verify locally first.
+
+## Decisions made (previously open)
+
+1. **Site stack**: monorepo confirmed — `pipeline/ data/ web/`. Pipeline emits `data/v1/*.json`;
+   Astro (5, TS strict, Tailwind 4) reads it through Zod schemas in `web/src/schemas/`.
+2. **`archive_url` vs invariant 6**: resolved via separate `archive_attempt` table keyed by
+   `snapshot_id`. Coverage gap = snapshot with no `ok` row. `Snapshot` stays append-only.
+3. **`check` → `fetch_attempt`**: implemented as proposed — one row per HTTP attempt, retries
+   included.
+4. **Snapshot vs fetch**: implemented as proposed. `Snapshot` only for 2xx HTML; everything else
+   lives in `fetch_attempt` for M2's GONE detection to read.
+5. **Dependency manager**: `uv`, as proposed.
 
 ## Module layout
 
@@ -212,6 +248,13 @@ class Job(Base):
 - Extraction health computed at read time; no stored flag.
 - All timestamps UTC. Extracted dates kept as raw strings.
 
-## Next steps after confirmation
+## Next steps
 
-schema + Alembic → outlets.yaml + `tw discover` against 3 outlets (prothomalo, thedailystar, bdnews24) → stop, show results → fetch → extract → archive → CLI → site.
+Local build is done (schema, discover, fetch, extract, archive, CLI, site all working against the
+real 18-outlet cohort). Remaining before M1 is fully closed out:
+
+1. Deploy: Cloudflare Pages + public git mirror (deferred until local is verified solid).
+2. Revisit the 3 deferred outlet gaps (`jagonews24`, `kalerkantho`, `thedissent`) if/when a
+   Playwright fallback or listing-page scraper is worth building.
+3. Then, and only then, start M2 (scheduler, diff, event generation) — per CLAUDE.md, don't
+   build ahead of the current milestone.
