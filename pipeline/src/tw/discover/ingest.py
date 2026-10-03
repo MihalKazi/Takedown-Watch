@@ -32,6 +32,21 @@ log = get_logger(__name__)
 MAX_INDEX_DEPTH = 2
 UNDATED_ALWAYS_ENQUEUE = {"rss", "atom", "news_sitemap"}
 
+# Listing pages, not articles. A dedicated news sitemap only ever lists articles; a general
+# sitemap.xml (the only source for outlets with no_news_sitemap, e.g. newagebd) lists every page
+# type on the site, including these -- and they can carry a real, recent <lastmod>, so the
+# capture-window check alone doesn't filter them out. First path segment is enough here: these
+# prefixes are structural CMS sections, not content a URL inside one could plausibly collide with.
+NON_ARTICLE_PATH_PREFIXES = {
+    "tag", "tags", "topic", "topics", "category", "categories", "author", "authors",
+    "search", "page", "pages", "archive", "archives",
+}
+
+
+def _is_non_article_path(url: str) -> bool:
+    segments = [s for s in urlsplit(url).path.split("/") if s]
+    return bool(segments) and segments[0].lower() in NON_ARTICLE_PATH_PREFIXES
+
 
 @dataclass
 class IngestStats:
@@ -42,6 +57,7 @@ class IngestStats:
     known_articles: int = 0
     outside_window: int = 0
     off_site: int = 0
+    non_article: int = 0
 
 
 def resolve_article(session: Session, url: str) -> Article | None:
@@ -158,6 +174,9 @@ class OutletIngest:
             self.stats.entries_seen += 1
             if not same_site(i.url, self.root):
                 self.stats.off_site += 1
+                continue
+            if _is_non_article_path(i.url):
+                self.stats.non_article += 1
                 continue
             d = parse_date(i.date)
             in_window = d >= self.cutoff if d else kind in UNDATED_ALWAYS_ENQUEUE

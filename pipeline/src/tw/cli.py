@@ -64,7 +64,7 @@ def crawl(
         i = r.ingest
         typer.echo(f"{r.slug:17} listings ok={i.listings_ok} failed={len(i.listings_failed)}  "
                    f"entries={i.entries_seen} new={i.new_articles} known={i.known_articles} "
-                   f"outside_window={i.outside_window} off_site={i.off_site}  "
+                   f"outside_window={i.outside_window} off_site={i.off_site} non_article={i.non_article}  "
                    f"captures: {dict(r.captures) or '-'}")
         for f in i.listings_failed:
             typer.echo(f"{'':17} listing failed: {f}")
