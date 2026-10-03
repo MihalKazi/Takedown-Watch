@@ -103,7 +103,21 @@ function whatChanged(e: Ev) {
         padding: 0.25rem 0;
       }
       .full-text summary:hover { text-decoration: underline; }
-      .full-text[open] summary { margin-bottom: 0.5rem; }
+      /* when open, the box below covers the page -- pin the toggle on top, in a fixed corner,
+         so there's always a visible, clickable way to close it */
+      .full-text[open] summary {
+        position: fixed;
+        top: 1rem;
+        right: 2rem;
+        z-index: 20;
+        background: #1a1d16;
+        border: 1px solid #5a6350;
+        border-radius: 0.4rem;
+        padding: 0.5rem 1rem;
+        box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.5);
+        font-weight: 600;
+      }
+      .full-text[open] summary::after { content: " ✕ close"; color: #c98a8a; }
       .full-text-block {
         position: fixed;
         inset: 3rem 2rem;
@@ -194,7 +208,6 @@ function whatChanged(e: Ev) {
                   <details class="full-text">
                     <summary>Read full article text</summary>
                     <div class="full-text-block">
-                      <p class="full-text-close muted">Click "Read full article text" again to close this.</p>
                       <p class="full-text-label">
                         Original (older version)
                         {e.from_archive_url && (
