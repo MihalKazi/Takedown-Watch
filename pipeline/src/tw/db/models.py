@@ -173,8 +173,40 @@ class RobotsSnapshot(Base):
     body_text: Mapped[str] = mapped_column(Text)
 
 
+class Event(Base):
+    """M2. A mechanically-observed change between two snapshots, or a gone/restored transition.
+
+    Machine-generated: only what was observed (invariant 1). No reason/motive/cause column here —
+    that lives in `annotation` (M3), signed by a human, referencing event.id.
+    Capture-everything: every detected change is written, regardless of magnitude. `severity` is a
+    sort key for human review order, never a gate on what gets stored.
+    """
+
+    __tablename__ = "event"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    article_id: Mapped[int] = mapped_column(ForeignKey("article.id"), index=True)
+    type: Mapped[str] = mapped_column(String(32), index=True)  # see tw.events.EventType
+    detected_at: Mapped[datetime] = mapped_column(index=True)
+    from_snapshot_id: Mapped[int | None] = mapped_column(ForeignKey("snapshot.id"))
+    to_snapshot_id: Mapped[int | None] = mapped_column(ForeignKey("snapshot.id"))
+    # nullable: GONE_* events have no to_snapshot (no 2xx snapshot to point to); they cite the
+    # fetch_attempt run that confirmed the gone-ness instead.
+    fetch_attempt_id: Mapped[int | None] = mapped_column(ForeignKey("fetch_attempt.id"))
+    severity: Mapped[int] = mapped_column(default=0)  # sort key only, never a write-time filter
+    confidence: Mapped[str] = mapped_column(String(16))  # confirmed | probable | unverified
+    article_age_at_change: Mapped[float] = mapped_column()  # hours since article.first_seen
+    reviewed_by: Mapped[str | None] = mapped_column(Text)
+    reviewed_at: Mapped[datetime | None]
+    review_decision: Mapped[str | None] = mapped_column(String(16))
+    published: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime]
+
+    __table_args__ = (Index("ix_event_article_detected", "article_id", "detected_at"),)
+
+
 class Job(Base):
-    """DB-backed queue. Kinds in M1: fetch_article, archive."""
+    """DB-backed queue. Kinds: fetch_article, archive (M1); recheck_article (M2)."""
 
     __tablename__ = "job"
 

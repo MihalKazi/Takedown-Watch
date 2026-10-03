@@ -53,16 +53,17 @@ async def crawl_outlet(settings: Settings, engine: Engine, fetcher: Fetcher, blo
 
     done = 0
     in_outlet = Job.ref_id.in_(select(Article.id).where(Article.outlet_id == outlet.id))
-    while max_articles is None or done < max_articles:
-        batch = CLAIM_BATCH if max_articles is None else min(CLAIM_BATCH, max_articles - done)
-        with session_scope(engine) as s:
-            job_ids = [j.id for j in claim(s, "fetch_article", worker, limit=batch, where=in_outlet)]
-        if not job_ids:
-            break
-        for jid in job_ids:
-            run.captures[await capture(settings, engine, fetcher, blobs, outlet, robots, jid)] += 1
-            done += 1
-        log.info("crawl.progress", outlet=outlet.slug, processed=done, **dict(run.captures))
+    for kind in ("fetch_article", "recheck_article"):
+        while max_articles is None or done < max_articles:
+            batch = CLAIM_BATCH if max_articles is None else min(CLAIM_BATCH, max_articles - done)
+            with session_scope(engine) as s:
+                job_ids = [j.id for j in claim(s, kind, worker, limit=batch, where=in_outlet)]
+            if not job_ids:
+                break
+            for jid in job_ids:
+                run.captures[await capture(settings, engine, fetcher, blobs, outlet, robots, jid)] += 1
+                done += 1
+            log.info("crawl.progress", outlet=outlet.slug, kind=kind, processed=done, **dict(run.captures))
     return run
 
 

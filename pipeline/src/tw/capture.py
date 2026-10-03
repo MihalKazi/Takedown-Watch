@@ -10,22 +10,25 @@ import asyncio
 from datetime import timedelta
 from urllib.parse import urljoin, urlsplit
 
-from sqlalchemy import Engine, select
+from sqlalchemy import Engine, func, select
 
 from tw.blobs import BlobStore
 from tw.config import Settings
-from tw.db.models import Article, Job, Outlet, Snapshot
+from tw.db.models import Article, Event, Job, Outlet, Snapshot
 from tw.db.queue import complete, enqueue, fail
 from tw.db.session import session_scope
+from tw.db.types import utcnow
 from tw.discover.canon import canonicalise
 from tw.discover.ingest import add_alias
 from tw.discover.probe import same_site, site_root
+from tw.events import check_gone, diff_snapshots, restored_event, write_event
 from tw.extract.extractor import EXTRACTOR_VERSION, Extraction, extract
 from tw.extract.hashing import text_hash
 from tw.extract.normalise import NORMALISER_VERSION
 from tw.fetch.classify import is_retryable
 from tw.fetch.client import Fetcher, FetchResult
 from tw.log import get_logger
+from tw.recheck.backoff import delay_for_step
 from tw.record import record_fetch, record_robots_block
 from tw.robots import Robots
 
@@ -77,6 +80,10 @@ async def capture(settings: Settings, engine: Engine, fetcher: Fetcher, blobs: B
         assert job is not None and art is not None
 
         if res.ok and is_html(res):
+            prev = s.scalar(
+                select(Snapshot).where(Snapshot.article_id == art.id)
+                .order_by(Snapshot.fetched_at.desc()).limit(1)
+            )
             snap = _snapshot(settings, s, blobs, outlet, art, res, rows[-1].id, rows[-1].started_at,
                              ext, extract_error)
             art.status = "captured"
@@ -88,14 +95,48 @@ async def capture(settings: Settings, engine: Engine, fetcher: Fetcher, blobs: B
                 if same_site(c, root) and canonicalise(c) != art.canonical_url:
                     add_alias(s, art, c, "canonical")
             enqueue(s, "archive", snap.id, max_attempts=settings.archive_max_attempts)
-            complete(s, job)
+
+            if prev is not None:
+                last_gone = s.scalar(
+                    select(Event).where(Event.article_id == art.id, Event.to_snapshot_id.is_(None))
+                    .order_by(Event.detected_at.desc()).limit(1)
+                )
+                if last_gone is not None:
+                    write_event(s, art, restored_event(last_gone, snap), detected_at=snap.fetched_at)
+                for draft in diff_snapshots(prev, snap):
+                    write_event(s, art, draft, detected_at=snap.fetched_at)
+            complete(s, job)  # must close this job before scheduling the next: enqueue()'s
+            _schedule_next_recheck(s, art)  # open-job idempotency check would otherwise see it.
             return "captured"
         if is_retryable(res.outcome, res.status):
             fail(s, job, f"{res.outcome} {res.status or ''}".strip(),
                  backoff=timedelta(minutes=settings.fetch_job_backoff_minutes))
             return f"retry_{res.outcome}"
-        complete(s, job)  # final: 404/410/403/CF/non-HTML. The observation is the fetch_attempt row.
+        # final: 404/410/403/CF/non-HTML. The observation is the fetch_attempt row; invariant 4
+        # (no GONE from one failed fetch) is enforced inside check_gone.
+        draft = check_gone(s, art)
+        if draft is not None:
+            write_event(s, art, draft)
+        complete(s, job)
+        if job.kind == "recheck_article":
+            _schedule_next_recheck(s, art)
         return "non_html" if res.ok else f"{res.outcome}_{res.status}" if res.status else str(res.outcome)
+
+
+def _schedule_next_recheck(s, art: Article) -> None:
+    """M2 backoff: schedule the next recheck from article.first_seen, per
+    tw.recheck.backoff.SCHEDULE. step = how many snapshots already exist, 0-indexed into the
+    schedule for the *next* one. No-op once the schedule is exhausted."""
+    snapshot_count = s.scalar(select(func.count(Snapshot.id)).where(Snapshot.article_id == art.id)) or 0
+    step = snapshot_count - 1
+    delay_total = delay_for_step(step)
+    if delay_total is None:
+        return
+    run_at = art.first_seen + delay_total
+    delay = run_at - utcnow()
+    if delay.total_seconds() < 0:
+        delay = timedelta(0)
+    enqueue(s, "recheck_article", art.id, delay=delay)
 
 
 def _snapshot(settings: Settings, s, blobs: BlobStore, outlet: Outlet, art: Article, res: FetchResult,
