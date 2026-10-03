@@ -20,6 +20,17 @@ function badge(confidence: string): string {
 
 type Ev = (typeof events)[number];
 
+/** Dashboard is read in Dhaka -- show times there, not UTC, labelled so it's unambiguous. */
+function dhaka(iso: string): string {
+  const d = new Date(iso);
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Dhaka", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(d);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}`;
+}
+
 /** Only the field(s) that actually produced this event -- not every field on the article. */
 function whatChanged(e: Ev) {
   switch (e.type) {
@@ -178,7 +189,7 @@ function whatChanged(e: Ev) {
           {events.map((e) => (
             <tr>
               <td class="sev">{e.severity}</td>
-              <td title={e.detected_at}>{e.detected_at.replace("T", " ").slice(0, 16)}</td>
+              <td title={e.detected_at}>{dhaka(e.detected_at)} <span class="muted">BDT</span></td>
               <td>{e.outlet_name}</td>
               <td>
                 <a class="url-cell" href={e.article_url} target="_blank" rel="noopener" title={e.article_url}>
@@ -217,7 +228,7 @@ function whatChanged(e: Ev) {
                       <summary>Read full article text</summary>
                       <div class="full-text-block">
                         <p class="full-text-label">
-                          Original (older version){e.from_fetched_at && <> — fetched {e.from_fetched_at.replace("T", " ").slice(0, 16)} UTC</>}
+                          Original (older version){e.from_fetched_at && <> — fetched {dhaka(e.from_fetched_at)} BDT</>}
                           {e.from_archive_url && (
                             <a class="archive-link" href={e.from_archive_url} target="_blank" rel="noopener">
                               independent proof (Internet Archive copy)
@@ -230,7 +241,7 @@ function whatChanged(e: Ev) {
                             : e.from_body}
                         </p>
                         <p class="full-text-label">
-                          Current (newer version){e.to_fetched_at && <> — fetched {e.to_fetched_at.replace("T", " ").slice(0, 16)} UTC</>}
+                          Current (newer version){e.to_fetched_at && <> — fetched {dhaka(e.to_fetched_at)} BDT</>}
                           {e.to_archive_url && (
                             <a class="archive-link" href={e.to_archive_url} target="_blank" rel="noopener">
                               independent proof (Internet Archive copy)
