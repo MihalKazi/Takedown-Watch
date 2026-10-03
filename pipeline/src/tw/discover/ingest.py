@@ -40,6 +40,7 @@ UNDATED_ALWAYS_ENQUEUE = {"rss", "atom", "news_sitemap"}
 NON_ARTICLE_PATH_PREFIXES = {
     "tag", "tags", "topic", "topics", "category", "categories", "author", "authors",
     "search", "page", "pages", "archive", "archives",
+    "articlelist",  # newagebd.net's category-listing path, e.g. /articlelist/79/theatre
 }
 
 
