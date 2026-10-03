@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import Engine, select
+from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import aliased
 
 from tw.db.models import Annotation, Article, ArchiveAttempt, Event, Outlet, Snapshot
@@ -40,6 +40,15 @@ class InternalAnnotation(_Strict):
     written_at: datetime
     body: str
     review_state: Literal["draft", "published", "retracted"]
+
+
+class ArticleVersion(_Strict):
+    """One fetched snapshot of the article, for the "all versions" history view --
+    not just the two snapshots tied to the one event this row represents."""
+    fetched_at: datetime
+    headline: str | None
+    body: str | None
+    archive_url: str | None
 
 
 class InternalEvent(_Strict):
@@ -71,9 +80,12 @@ class InternalEvent(_Strict):
     review_decision: str | None
     published: bool
     annotations: list[InternalAnnotation]
+    article_change_count: int  # how many events (any type) this article has had in total
+    article_versions: list[ArticleVersion]  # every captured snapshot, oldest first, capped
 
 
 MAX_DIFF_SIDE_CHARS = 400  # hard cap per side: a reviewer glance, not a full-text dump
+MAX_VERSIONS_PER_ARTICLE = 20  # cap the "all versions" list sent to the browser per article
 
 
 def _body_diff_snippet(before: str | None, after: str | None, *, context: int = 60) -> str | None:
@@ -131,7 +143,23 @@ def build(engine: Engine, *, limit: int = 2000) -> InternalEvents:
                 select(Annotation).where(Annotation.event_id.in_(event_ids)).order_by(Annotation.written_at)
             ):
                 anns_by_event.setdefault(ann.event_id, []).append(ann)
+        article_ids = {a.id for _, a, _, _, _ in rows}
+        change_count_by_article: dict[int, int] = {}
+        if article_ids:
+            for article_id, count in s.execute(
+                select(Event.article_id, func.count(Event.id))
+                .where(Event.article_id.in_(article_ids))
+                .group_by(Event.article_id)
+            ):
+                change_count_by_article[article_id] = count
+        snapshots_by_article: dict[int, list[Snapshot]] = {}
+        if article_ids:
+            for snap in s.scalars(
+                select(Snapshot).where(Snapshot.article_id.in_(article_ids)).order_by(Snapshot.fetched_at)
+            ):
+                snapshots_by_article.setdefault(snap.article_id, []).append(snap)
         snap_ids = {sid for _, _, _, fs, ts in rows for sid in (fs.id if fs else None, ts.id if ts else None) if sid}
+        snap_ids |= {snap.id for snaps in snapshots_by_article.values() for snap in snaps[:MAX_VERSIONS_PER_ARTICLE]}
         archive_url_by_snap: dict[int, str] = {}
         if snap_ids:
             for aa in s.scalars(
@@ -158,6 +186,14 @@ def build(engine: Engine, *, limit: int = 2000) -> InternalEvents:
                     InternalAnnotation(author=an.author, written_at=an.written_at, body=an.body,
                                        review_state=an.review_state)
                     for an in anns_by_event.get(ev.id, [])
+                ],
+                article_change_count=change_count_by_article.get(a.id, 0),
+                article_versions=[
+                    ArticleVersion(
+                        fetched_at=snap.fetched_at, headline=snap.headline, body=snap.body_text,
+                        archive_url=archive_url_by_snap.get(snap.id),
+                    )
+                    for snap in snapshots_by_article.get(a.id, [])[:MAX_VERSIONS_PER_ARTICLE]
                 ],
             )
             for ev, a, o, fs, ts in rows

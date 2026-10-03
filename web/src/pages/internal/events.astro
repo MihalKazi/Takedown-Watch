@@ -20,6 +20,8 @@ function badge(confidence: string): string {
 
 type Ev = (typeof events)[number];
 
+const MAX_VERSIONS_PER_ARTICLE = 20; // must match pipeline/src/tw/export_internal.py
+
 /** Dashboard is read in Dhaka -- show times there, not UTC, labelled so it's unambiguous. */
 function dhaka(iso: string): string {
   const d = new Date(iso);
@@ -79,6 +81,15 @@ function whatChanged(e: Ev) {
       .col-review { width: 7rem; }
       .col-notes { width: 10rem; }
       .url-cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+      .change-badge {
+        display: inline-block;
+        font-size: 0.7rem;
+        color: #e0c767;
+        border: 1px solid #5a5340;
+        border-radius: 1rem;
+        padding: 0 0.4rem;
+        margin-top: 0.2rem;
+      }
       tr:hover { background: #14170f; }
       .type { font-weight: 600; }
       .age { color: #9aa294; white-space: nowrap; }
@@ -195,6 +206,11 @@ function whatChanged(e: Ev) {
                 <a class="url-cell" href={e.article_url} target="_blank" rel="noopener" title={e.article_url}>
                   {new URL(e.article_url).pathname}
                 </a>
+                {e.article_change_count > 1 && (
+                  <span class="change-badge" title="total number of recorded changes for this article">
+                    changed {e.article_change_count}×
+                  </span>
+                )}
               </td>
               <td class="type">{e.type}</td>
               <td class={badge(e.confidence)}>{e.confidence}</td>
@@ -253,6 +269,40 @@ function whatChanged(e: Ev) {
                             ? diffed.after.map((p) => p.tag === "ins" ? <mark class="ins">{p.text}</mark> : <>{p.text}</>)
                             : e.to_body}
                         </p>
+                      </div>
+                    </details>
+                  );
+                })()}
+                {e.article_versions.length > 2 && (() => {
+                  const versions = e.article_versions;
+                  return (
+                    <details class="full-text">
+                      <summary>See all {versions.length}{versions.length >= MAX_VERSIONS_PER_ARTICLE ? "+" : ""} versions of this article</summary>
+                      <div class="full-text-block">
+                        {versions.map((v, i) => {
+                          const prev = i > 0 ? versions[i - 1] : null;
+                          const bodyA = prev?.body ?? "";
+                          const bodyB = v.body ?? "";
+                          const bothShort = bodyA.length < 20000 && bodyB.length < 20000;
+                          const diffed = prev && bothShort ? diffWords(bodyA, bodyB) : null;
+                          return (
+                            <>
+                              <p class="full-text-label">
+                                Version {i + 1} of {versions.length} — fetched {dhaka(v.fetched_at)} BDT
+                                {v.archive_url && (
+                                  <a class="archive-link" href={v.archive_url} target="_blank" rel="noopener">
+                                    independent proof (Internet Archive copy)
+                                  </a>
+                                )}
+                              </p>
+                              <p class="full-text-body">
+                                {diffed
+                                  ? diffed.after.map((p) => p.tag === "ins" ? <mark class="ins">{p.text}</mark> : <>{p.text}</>)
+                                  : (v.body ?? <span class="muted">(no text captured)</span>)}
+                              </p>
+                            </>
+                          );
+                        })}
                       </div>
                     </details>
                   );

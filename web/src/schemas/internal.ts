@@ -21,6 +21,13 @@ export const InternalAnnotation = z.strictObject({
   review_state: z.enum(["draft", "published", "retracted"]),
 });
 
+export const ArticleVersion = z.strictObject({
+  fetched_at: timestamp,
+  headline: z.string().nullable(),
+  body: z.string().nullable(),
+  archive_url: z.string().nullable(),
+});
+
 export const InternalEvent = z.strictObject({
   id: z.int().positive(),
   type: z.string().min(1),
@@ -50,6 +57,8 @@ export const InternalEvent = z.strictObject({
   review_decision: z.string().nullable(),
   published: z.boolean(),
   annotations: z.array(InternalAnnotation),
+  article_change_count: z.int().nonnegative(),
+  article_versions: z.array(ArticleVersion),
 });
 
 export const InternalEvents = z.strictObject({
