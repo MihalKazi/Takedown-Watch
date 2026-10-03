@@ -41,6 +41,10 @@ function badge(confidence: string): string {
       .conf-unverified { color: #c98a8a; }
       a { color: #8fb6e0; }
       .empty { color: #9aa294; padding: 2rem 0; }
+      .sev { font-weight: 700; text-align: right; }
+      .unreviewed { color: #9aa294; }
+      .notes { margin: 0; padding-left: 1rem; }
+      code { background: #14170f; padding: 0.1rem 0.3rem; border-radius: 3px; }
     </style>
   </head>
   <body>
@@ -54,6 +58,7 @@ function badge(confidence: string): string {
       <table>
         <thead>
           <tr>
+            <th>Sev</th>
             <th>Detected</th>
             <th>Outlet</th>
             <th>Article</th>
@@ -61,11 +66,14 @@ function badge(confidence: string): string {
             <th>Confidence</th>
             <th>Age at change</th>
             <th>Headline</th>
+            <th>Review</th>
+            <th>Notes</th>
           </tr>
         </thead>
         <tbody>
           {events.map((e) => (
             <tr>
+              <td class="sev">{e.severity}</td>
               <td>{e.detected_at}</td>
               <td>{e.outlet_name}</td>
               <td><a href={e.article_url} target="_blank" rel="noopener">{e.article_url}</a></td>
@@ -82,10 +90,30 @@ function badge(confidence: string): string {
                   e.to_headline ?? e.from_headline ?? "—"
                 )}
               </td>
+              <td>
+                {e.reviewed_by ? (
+                  <span>{e.review_decision} ({e.reviewed_by})</span>
+                ) : (
+                  <span class="unreviewed">unreviewed</span>
+                )}
+              </td>
+              <td>
+                {e.annotations.length === 0 ? "—" : (
+                  <ul class="notes">
+                    {e.annotations.map((a) => (
+                      <li><strong>{a.author}:</strong> {a.body}</li>
+                    ))}
+                  </ul>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+      <p class="meta">
+        Review via CLI: <code>tw review &lt;event_id&gt; --reviewed-by name --decision confirmed|dismissed|escalated</code>
+        &nbsp;·&nbsp; annotate: <code>tw annotate &lt;event_id&gt; --author name --body "..."</code>
+      </p>
     )}
   </body>
 </html>

@@ -205,6 +205,21 @@ class Event(Base):
     __table_args__ = (Index("ix_event_article_detected", "article_id", "detected_at"),)
 
 
+class Annotation(Base):
+    """M3. Interpretation lives here, not on `event` (invariant 1). A human claim, signed by a
+    named author, reviewable, always referencing the event it interprets. `event` itself never
+    gets a reason/motive/cause column -- that distinction is the whole point of this table."""
+
+    __tablename__ = "annotation"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    event_id: Mapped[int] = mapped_column(ForeignKey("event.id"), index=True)
+    author: Mapped[str] = mapped_column(Text)
+    written_at: Mapped[datetime] = mapped_column(index=True)
+    body: Mapped[str] = mapped_column(Text)
+    review_state: Mapped[str] = mapped_column(String(16), default="draft")  # draft | published | retracted
+
+
 class Job(Base):
     """DB-backed queue. Kinds: fetch_article, archive (M1); recheck_article (M2)."""
 

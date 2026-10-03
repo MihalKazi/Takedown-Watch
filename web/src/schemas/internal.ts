@@ -14,6 +14,13 @@ import { timestamp } from "./common.ts";
 
 const SCHEMA_VERSION = "1.0.0" as const;
 
+export const InternalAnnotation = z.strictObject({
+  author: z.string().min(1),
+  written_at: timestamp,
+  body: z.string().min(1),
+  review_state: z.enum(["draft", "published", "retracted"]),
+});
+
 export const InternalEvent = z.strictObject({
   id: z.int().positive(),
   type: z.string().min(1),
@@ -29,6 +36,7 @@ export const InternalEvent = z.strictObject({
   reviewed_by: z.string().nullable(),
   review_decision: z.string().nullable(),
   published: z.boolean(),
+  annotations: z.array(InternalAnnotation),
 });
 
 export const InternalEvents = z.strictObject({

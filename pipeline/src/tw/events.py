@@ -41,6 +41,41 @@ UNPUBLISHED = "UNPUBLISHED"
 # FIRST_SEEN is implicit at article creation, not a diff outcome.
 
 
+# M3 severity: a sort key only (invariant: capture everything, filter at read time -- severity
+# never gates what gets written). article_age_at_change is the primary multiplier, per CLAUDE.md
+# "Core design principle: age at change" -- editing a 2-hour-old article is routine; editing a
+# 6-month-old one is anomalous. Age bands reuse the same boundaries as the recheck backoff
+# schedule, since that's already the project's definition of "how old is old".
+BASE_SEVERITY: dict[str, int] = {
+    BYLINE_REMOVED: 9,  # CLAUDE.md flags this "(high significance)" explicitly
+    GONE_404: 8,
+    GONE_410: 8,
+    GONE_SOFT: 8,
+    ROBOTS_BLOCKED: 6,
+    BODY_CHANGED: 5,
+    DEINDEXED: 5,
+    UNPUBLISHED: 4,
+    BYLINE_CHANGED: 4,
+    HEADLINE_CHANGED: 3,
+    REDIRECTED: 3,
+    DATE_CHANGED: 2,
+    RESTORED: 1,  # good news, but still worth a human glance
+}
+
+_AGE_BAND_HOURS = (1, 6, 24, 72, 168, 720, 2160, 8760)  # 1h,6h,24h,3d,7d,30d,90d,365d
+
+
+def _age_multiplier(age_hours: float) -> int:
+    for i, bound in enumerate(_AGE_BAND_HOURS, start=1):
+        if age_hours <= bound:
+            return i
+    return len(_AGE_BAND_HOURS) + 1
+
+
+def compute_severity(event_type: str, age_hours: float) -> int:
+    return BASE_SEVERITY.get(event_type, 3) * _age_multiplier(age_hours)
+
+
 @dataclass
 class EventDraft:
     type: str
@@ -158,13 +193,15 @@ def diff_listing_presence(prev_rss: set[str], prev_sitemap: set[str], cur_rss: s
 
 
 def write_event(session: Session, article: Article, draft: EventDraft, *, detected_at: datetime | None = None,
-                severity: int = 0) -> Event:
+                severity: int | None = None) -> Event:
     detected_at = detected_at or utcnow()
+    age = _age_hours(article.first_seen, detected_at)
     ev = Event(
         article_id=article.id, type=draft.type, detected_at=detected_at,
         from_snapshot_id=draft.from_snapshot_id, to_snapshot_id=draft.to_snapshot_id,
-        fetch_attempt_id=draft.fetch_attempt_id, severity=severity, confidence=draft.confidence,
-        article_age_at_change=_age_hours(article.first_seen, detected_at), created_at=detected_at,
+        fetch_attempt_id=draft.fetch_attempt_id,
+        severity=severity if severity is not None else compute_severity(draft.type, age),
+        confidence=draft.confidence, article_age_at_change=age, created_at=detected_at,
     )
     session.add(ev)
     session.flush()

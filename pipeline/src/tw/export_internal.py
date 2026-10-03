@@ -21,7 +21,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import aliased
 
-from tw.db.models import Article, Event, Outlet, Snapshot
+from tw.db.models import Annotation, Article, Event, Outlet, Snapshot
 from tw.db.session import session_scope
 from tw.db.types import utcnow
 
@@ -31,6 +31,13 @@ DATASET_DIR = "internal"
 
 class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+class InternalAnnotation(_Strict):
+    author: str
+    written_at: datetime
+    body: str
+    review_state: Literal["draft", "published", "retracted"]
 
 
 class InternalEvent(_Strict):
@@ -48,6 +55,7 @@ class InternalEvent(_Strict):
     reviewed_by: str | None
     review_decision: str | None
     published: bool
+    annotations: list[InternalAnnotation]
 
 
 class InternalEvents(_Strict):
@@ -61,15 +69,24 @@ def build(engine: Engine, *, limit: int = 2000) -> InternalEvents:
     from_snap = aliased(Snapshot)
     to_snap = aliased(Snapshot)
     with session_scope(engine) as s:
+        # Triage ordering (M3): severity is a sort key, never a filter -- every row above is
+        # still written regardless of this order. Ties broken by most-recently detected.
         rows = s.execute(
             select(Event, Article, Outlet, from_snap, to_snap)
             .join(Article, Event.article_id == Article.id)
             .join(Outlet, Article.outlet_id == Outlet.id)
             .outerjoin(from_snap, Event.from_snapshot_id == from_snap.id)
             .outerjoin(to_snap, Event.to_snapshot_id == to_snap.id)
-            .order_by(Event.detected_at.desc())
+            .order_by(Event.severity.desc(), Event.detected_at.desc())
             .limit(limit)
         ).all()
+        event_ids = [ev.id for ev, *_ in rows]
+        anns_by_event: dict[int, list[Annotation]] = {}
+        if event_ids:
+            for ann in s.scalars(
+                select(Annotation).where(Annotation.event_id.in_(event_ids)).order_by(Annotation.written_at)
+            ):
+                anns_by_event.setdefault(ann.event_id, []).append(ann)
         events = [
             InternalEvent(
                 id=ev.id, type=ev.type, detected_at=ev.detected_at, confidence=ev.confidence,
@@ -77,6 +94,11 @@ def build(engine: Engine, *, limit: int = 2000) -> InternalEvents:
                 outlet_slug=o.slug, outlet_name=o.name, article_url=a.canonical_url,
                 from_headline=fs.headline if fs else None, to_headline=ts.headline if ts else None,
                 reviewed_by=ev.reviewed_by, review_decision=ev.review_decision, published=ev.published,
+                annotations=[
+                    InternalAnnotation(author=an.author, written_at=an.written_at, body=an.body,
+                                       review_state=an.review_state)
+                    for an in anns_by_event.get(ev.id, [])
+                ],
             )
             for ev, a, o, fs, ts in rows
         ]

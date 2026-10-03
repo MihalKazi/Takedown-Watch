@@ -116,5 +116,38 @@ def export_internal() -> None:
     typer.echo(f"wrote {out}")
 
 
+@app.command()
+def annotate(
+    event_id: Annotated[int, typer.Argument(help="event.id to annotate.")],
+    author: Annotated[str, typer.Option(help="Named human author. Never a script.")],
+    body: Annotated[str, typer.Option(help="The claim, in your own words. Evidenced, not mechanical.")],
+    review_state: Annotated[str, typer.Option(help="draft | published | retracted.")] = "draft",
+) -> None:
+    """M3: attach a signed human annotation to an event. Writes only to `annotation`, never to
+    `event` -- see CLAUDE.md invariant 1."""
+    from tw.annotate import add_annotation
+    from tw.db.session import session_scope, get_engine
+
+    with session_scope(get_engine()) as s:
+        ann = add_annotation(s, event_id, author, body, review_state=review_state)
+        typer.echo(f"annotation {ann.id} on event {event_id} by {author} ({review_state})")
+
+
+@app.command()
+def review(
+    event_id: Annotated[int, typer.Argument(help="event.id to mark reviewed.")],
+    reviewed_by: Annotated[str, typer.Option(help="Named human reviewer.")],
+    decision: Annotated[str, typer.Option(help="confirmed | dismissed | escalated.")],
+) -> None:
+    """M3: record who looked at an event and what they decided. Workflow state, not
+    interpretation -- put any reasoning in an annotation instead (`tw annotate`)."""
+    from tw.annotate import set_review
+    from tw.db.session import session_scope, get_engine
+
+    with session_scope(get_engine()) as s:
+        set_review(s, event_id, reviewed_by, decision)
+        typer.echo(f"event {event_id} reviewed by {reviewed_by}: {decision}")
+
+
 if __name__ == "__main__":
     app()
