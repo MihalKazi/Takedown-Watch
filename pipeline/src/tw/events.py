@@ -35,8 +35,10 @@ GONE_410 = "GONE_410"
 GONE_SOFT = "GONE_SOFT"
 ROBOTS_BLOCKED = "ROBOTS_BLOCKED"
 RESTORED = "RESTORED"
-# Not generated here (need listing/robots context this module doesn't have):
-# FIRST_SEEN, DEINDEXED, UNPUBLISHED, GEO_BLOCKED.
+DEINDEXED = "DEINDEXED"
+UNPUBLISHED = "UNPUBLISHED"
+# Not generated here (needs a second vantage point): GEO_BLOCKED.
+# FIRST_SEEN is implicit at article creation, not a diff outcome.
 
 
 @dataclass
@@ -131,6 +133,27 @@ def _gone_kind(attempt: FetchAttempt) -> str | None:
         return GONE_404
     if attempt.http_status == 410:
         return GONE_410
+    return None
+
+
+def diff_listing_presence(prev_rss: set[str], prev_sitemap: set[str], cur_rss: set[str],
+                          cur_sitemap: set[str], url_hashes: set[str]) -> EventDraft | None:
+    """Compare where an article's URL (any known alias hash) appeared in the immediately prior
+    listing fetch vs the current one. Transitions only: an article that was already absent last
+    run produces nothing this run (invariant: capture everything, but this models a one-time
+    transition, not a standing state re-announced every crawl). Confidence is "unverified" --
+    a feed can drop an entry for reasons unrelated to editorial intent (pagination limits, feed
+    size caps), so this is weaker evidence than a direct content diff or a repeated fetch
+    failure."""
+    was_listed = bool(url_hashes & (prev_rss | prev_sitemap))
+    if not was_listed:
+        return None
+    now_rss = bool(url_hashes & cur_rss)
+    now_sitemap = bool(url_hashes & cur_sitemap)
+    if not now_rss and not now_sitemap:
+        return EventDraft(DEINDEXED, "unverified")
+    if bool(url_hashes & prev_sitemap) and not now_sitemap and now_rss:
+        return EventDraft(UNPUBLISHED, "unverified")
     return None
 
 

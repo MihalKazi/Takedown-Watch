@@ -18,6 +18,7 @@ from tw.config import Settings
 from tw.db.models import Article, Job, Outlet
 from tw.db.queue import claim
 from tw.db.session import session_scope
+from tw.delist import detect_delisting
 from tw.discover.ingest import IngestStats, OutletIngest
 from tw.fetch.client import Fetcher
 from tw.fetch.ratelimit import HostRateLimiter
@@ -50,6 +51,11 @@ async def crawl_outlet(settings: Settings, engine: Engine, fetcher: Fetcher, blo
     robots = await fetch_robots(fetcher, outlet.base_url, settings.robots_agent_token, rec)
     run.robots_limitation = robots.limitation
     run.ingest = await OutletIngest(settings, engine, fetcher, blobs, outlet, robots).run()
+
+    with session_scope(engine) as s:
+        fresh = s.get(Outlet, outlet.id)
+        if fresh is not None:
+            detect_delisting(s, fresh)
 
     done = 0
     in_outlet = Job.ref_id.in_(select(Article.id).where(Article.outlet_id == outlet.id))
