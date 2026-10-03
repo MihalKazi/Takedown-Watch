@@ -170,6 +170,19 @@ function whatChanged(e: Ev) {
       }
       .full-text-body mark.del { background: #4a2020; color: #f0a6a6; text-decoration: line-through; }
       .full-text-body mark.ins { background: #1f3a20; color: #a6e0a6; }
+      .side-by-side {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin: 1.25rem 0;
+        padding-top: 1.25rem;
+        border-top: 1px solid #262a22;
+      }
+      .side-by-side:first-child { border-top: none; padding-top: 0; }
+      .side .full-text-body { max-width: none; }
+      @media (max-width: 60rem) {
+        .side-by-side { grid-template-columns: 1fr; }
+      }
     </style>
   </head>
   <body>
@@ -243,32 +256,38 @@ function whatChanged(e: Ev) {
                     <details class="full-text">
                       <summary>Read full article text</summary>
                       <div class="full-text-block">
-                        <p class="full-text-label">
-                          Original (older version){e.from_fetched_at && <> — fetched {dhaka(e.from_fetched_at)} BDT</>}
-                          {e.from_archive_url && (
-                            <a class="archive-link" href={e.from_archive_url} target="_blank" rel="noopener">
-                              independent proof (Internet Archive copy)
-                            </a>
-                          )}
-                        </p>
-                        <p class="full-text-body">
-                          {diffed
-                            ? diffed.before.map((p) => p.tag === "del" ? <mark class="del">{p.text}</mark> : <>{p.text}</>)
-                            : e.from_body}
-                        </p>
-                        <p class="full-text-label">
-                          Current (newer version){e.to_fetched_at && <> — fetched {dhaka(e.to_fetched_at)} BDT</>}
-                          {e.to_archive_url && (
-                            <a class="archive-link" href={e.to_archive_url} target="_blank" rel="noopener">
-                              independent proof (Internet Archive copy)
-                            </a>
-                          )}
-                        </p>
-                        <p class="full-text-body">
-                          {diffed
-                            ? diffed.after.map((p) => p.tag === "ins" ? <mark class="ins">{p.text}</mark> : <>{p.text}</>)
-                            : e.to_body}
-                        </p>
+                        <div class="side-by-side">
+                          <div class="side">
+                            <p class="full-text-label">
+                              Original (older version){e.from_fetched_at && <> — fetched {dhaka(e.from_fetched_at)} BDT</>}
+                              {e.from_archive_url && (
+                                <a class="archive-link" href={e.from_archive_url} target="_blank" rel="noopener">
+                                  independent proof (Internet Archive copy)
+                                </a>
+                              )}
+                            </p>
+                            <p class="full-text-body">
+                              {diffed
+                                ? diffed.before.map((p) => p.tag === "del" ? <mark class="del">{p.text}</mark> : <>{p.text}</>)
+                                : e.from_body}
+                            </p>
+                          </div>
+                          <div class="side">
+                            <p class="full-text-label">
+                              Current (newer version){e.to_fetched_at && <> — fetched {dhaka(e.to_fetched_at)} BDT</>}
+                              {e.to_archive_url && (
+                                <a class="archive-link" href={e.to_archive_url} target="_blank" rel="noopener">
+                                  independent proof (Internet Archive copy)
+                                </a>
+                              )}
+                            </p>
+                            <p class="full-text-body">
+                              {diffed
+                                ? diffed.after.map((p) => p.tag === "ins" ? <mark class="ins">{p.text}</mark> : <>{p.text}</>)
+                                : e.to_body}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </details>
                   );
@@ -279,28 +298,46 @@ function whatChanged(e: Ev) {
                     <details class="full-text">
                       <summary>See all {versions.length}{versions.length >= MAX_VERSIONS_PER_ARTICLE ? "+" : ""} versions of this article</summary>
                       <div class="full-text-block">
-                        {versions.map((v, i) => {
-                          const prev = i > 0 ? versions[i - 1] : null;
-                          const bodyA = prev?.body ?? "";
+                        {versions.slice(1).map((v, idx) => {
+                          const prev = versions[idx]!; // versions[idx] is the one before v (idx shifted by slice)
+                          const bodyA = prev.body ?? "";
                           const bodyB = v.body ?? "";
                           const bothShort = bodyA.length < 20000 && bodyB.length < 20000;
-                          const diffed = prev && bothShort ? diffWords(bodyA, bodyB) : null;
+                          const diffed = bothShort ? diffWords(bodyA, bodyB) : null;
+                          const i = idx + 1;
                           return (
-                            <>
-                              <p class="full-text-label">
-                                Version {i + 1} of {versions.length} — fetched {dhaka(v.fetched_at)} BDT
-                                {v.archive_url && (
-                                  <a class="archive-link" href={v.archive_url} target="_blank" rel="noopener">
-                                    independent proof (Internet Archive copy)
-                                  </a>
-                                )}
-                              </p>
-                              <p class="full-text-body">
-                                {diffed
-                                  ? diffed.after.map((p) => p.tag === "ins" ? <mark class="ins">{p.text}</mark> : <>{p.text}</>)
-                                  : (v.body ?? <span class="muted">(no text captured)</span>)}
-                              </p>
-                            </>
+                            <div class="side-by-side">
+                              <div class="side">
+                                <p class="full-text-label">
+                                  Version {i} of {versions.length} — fetched {dhaka(prev.fetched_at)} BDT
+                                  {prev.archive_url && (
+                                    <a class="archive-link" href={prev.archive_url} target="_blank" rel="noopener">
+                                      independent proof (Internet Archive copy)
+                                    </a>
+                                  )}
+                                </p>
+                                <p class="full-text-body">
+                                  {diffed
+                                    ? diffed.before.map((p) => p.tag === "del" ? <mark class="del">{p.text}</mark> : <>{p.text}</>)
+                                    : (prev.body ?? <span class="muted">(no text captured)</span>)}
+                                </p>
+                              </div>
+                              <div class="side">
+                                <p class="full-text-label">
+                                  Version {i + 1} of {versions.length} — fetched {dhaka(v.fetched_at)} BDT
+                                  {v.archive_url && (
+                                    <a class="archive-link" href={v.archive_url} target="_blank" rel="noopener">
+                                      independent proof (Internet Archive copy)
+                                    </a>
+                                  )}
+                                </p>
+                                <p class="full-text-body">
+                                  {diffed
+                                    ? diffed.after.map((p) => p.tag === "ins" ? <mark class="ins">{p.text}</mark> : <>{p.text}</>)
+                                    : (v.body ?? <span class="muted">(no text captured)</span>)}
+                                </p>
+                              </div>
+                            </div>
                           );
                         })}
                       </div>
