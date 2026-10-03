@@ -25,3 +25,13 @@ def test_none_before_treated_as_empty() -> None:
 
 def test_both_none_has_no_diff() -> None:
     assert _body_diff_snippet(None, None) is None
+
+
+def test_diff_is_hard_capped_even_with_no_shared_content() -> None:
+    """A listing/tag page's whole body can differ (no shared anchor for difflib to center on);
+    the snippet must still stay bounded, not dump the full page."""
+    before = "x" * 5000
+    after = "y" * 5000
+    snippet = _body_diff_snippet(before, after)
+    assert snippet is not None
+    assert len(snippet) < 1200

@@ -67,12 +67,13 @@ function whatChanged(e: Ev) {
       .unreviewed { color: #9aa294; }
       .notes { margin: 0; padding-left: 1rem; }
       code { background: #14170f; padding: 0.1rem 0.3rem; border-radius: 3px; }
-      .diff { max-width: 32rem; }
+      .diff { max-width: 32rem; max-height: 10rem; overflow-y: auto; }
       .diff .old { color: #c98a8a; }
       .diff .new { color: #7fd17f; }
       .muted { color: #9aa294; }
       .body-diff {
         white-space: pre-wrap;
+        word-break: break-word;
         font-family: inherit;
         margin: 0;
         font-size: 0.8rem;

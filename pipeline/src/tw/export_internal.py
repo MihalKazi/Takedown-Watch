@@ -25,6 +25,7 @@ from sqlalchemy.orm import aliased
 from tw.db.models import Annotation, Article, Event, Outlet, Snapshot
 from tw.db.session import session_scope
 from tw.db.types import utcnow
+from tw.discover.ingest import _is_non_article_path
 
 SCHEMA_VERSION = "1.0.0"
 DATASET_DIR = "internal"
@@ -66,6 +67,9 @@ class InternalEvent(_Strict):
     annotations: list[InternalAnnotation]
 
 
+MAX_DIFF_SIDE_CHARS = 400  # hard cap per side: a reviewer glance, not a full-text dump
+
+
 def _body_diff_snippet(before: str | None, after: str | None, *, context: int = 60) -> str | None:
     """A short "- old / + new" excerpt around the first differing region, not the whole body --
     this is for a reviewer to see at a glance what moved, not to republish the article."""
@@ -77,8 +81,8 @@ def _body_diff_snippet(before: str | None, after: str | None, *, context: int = 
         if tag == "equal":
             continue
         lo_a, lo_b = max(0, i1 - context), max(0, j1 - context)
-        old = before[lo_a:i2 + context]
-        new = after[lo_b:j2 + context]
+        old = before[lo_a:i2 + context][:MAX_DIFF_SIDE_CHARS]
+        new = after[lo_b:j2 + context][:MAX_DIFF_SIDE_CHARS]
         prefix = "…" if lo_a > 0 else ""
         suffix = "…" if i2 + context < len(before) else ""
         return f"- {prefix}{old}{suffix}\n+ {prefix if lo_b > 0 else ''}{new}{'…' if j2 + context < len(after) else ''}"
@@ -96,17 +100,24 @@ def build(engine: Engine, *, limit: int = 2000) -> InternalEvents:
     from_snap = aliased(Snapshot)
     to_snap = aliased(Snapshot)
     with session_scope(engine) as s:
-        # Triage ordering (M3): severity is a sort key, never a filter -- every row above is
+        # Triage ordering (M3): severity is a sort key, never a filter -- every row below is
         # still written regardless of this order. Ties broken by most-recently detected.
-        rows = s.execute(
+        #
+        # Fetch wider than `limit` and filter out non-article URLs (tag/category/author listing
+        # pages, see tw.discover.ingest._is_non_article_path) in Python: these rows exist in the
+        # DB from before that filter was added (non-destructive -- they're not deleted there,
+        # only kept out of this view), and a listing page's content changes every crawl, so they
+        # would otherwise dominate the top of a severity-sorted dashboard with noise.
+        candidates = s.execute(
             select(Event, Article, Outlet, from_snap, to_snap)
             .join(Article, Event.article_id == Article.id)
             .join(Outlet, Article.outlet_id == Outlet.id)
             .outerjoin(from_snap, Event.from_snapshot_id == from_snap.id)
             .outerjoin(to_snap, Event.to_snapshot_id == to_snap.id)
             .order_by(Event.severity.desc(), Event.detected_at.desc())
-            .limit(limit)
+            .limit(limit * 3)
         ).all()
+        rows = [r for r in candidates if not _is_non_article_path(r[1].canonical_url)][:limit]
         event_ids = [ev.id for ev, *_ in rows]
         anns_by_event: dict[int, list[Annotation]] = {}
         if event_ids:
