@@ -217,7 +217,7 @@ function whatChanged(e: Ev) {
                       <summary>Read full article text</summary>
                       <div class="full-text-block">
                         <p class="full-text-label">
-                          Original (older version)
+                          Original (older version){e.from_fetched_at && <> — fetched {e.from_fetched_at.replace("T", " ").slice(0, 16)} UTC</>}
                           {e.from_archive_url && (
                             <a class="archive-link" href={e.from_archive_url} target="_blank" rel="noopener">
                               independent proof (Internet Archive copy)
@@ -230,7 +230,7 @@ function whatChanged(e: Ev) {
                             : e.from_body}
                         </p>
                         <p class="full-text-label">
-                          Current (newer version)
+                          Current (newer version){e.to_fetched_at && <> — fetched {e.to_fetched_at.replace("T", " ").slice(0, 16)} UTC</>}
                           {e.to_archive_url && (
                             <a class="archive-link" href={e.to_archive_url} target="_blank" rel="noopener">
                               independent proof (Internet Archive copy)

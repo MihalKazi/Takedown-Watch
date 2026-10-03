@@ -60,6 +60,8 @@ class InternalEvent(_Strict):
     to_published_at: str | None
     from_final_url: str | None
     to_final_url: str | None
+    from_fetched_at: datetime | None  # when each snapshot was actually fetched -- not detected_at,
+    to_fetched_at: datetime | None    # which is when the recheck job ran and noticed the diff
     body_diff: str | None  # short excerpt around the first differing region, not the full body
     from_body: str | None  # full text, for a non-technical reviewer to read both versions whole
     to_body: str | None
@@ -146,6 +148,7 @@ def build(engine: Engine, *, limit: int = 2000) -> InternalEvents:
                 from_byline=fs.byline if fs else None, to_byline=ts.byline if ts else None,
                 from_published_at=fs.published_at if fs else None, to_published_at=ts.published_at if ts else None,
                 from_final_url=fs.final_url if fs else None, to_final_url=ts.final_url if ts else None,
+                from_fetched_at=fs.fetched_at if fs else None, to_fetched_at=ts.fetched_at if ts else None,
                 body_diff=_body_diff_snippet(fs.body_text if fs else None, ts.body_text if ts else None),
                 from_body=fs.body_text if fs else None, to_body=ts.body_text if ts else None,
                 from_archive_url=archive_url_by_snap.get(fs.id) if fs else None,

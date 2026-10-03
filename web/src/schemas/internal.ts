@@ -39,6 +39,8 @@ export const InternalEvent = z.strictObject({
   to_published_at: z.string().nullable(),
   from_final_url: z.string().nullable(),
   to_final_url: z.string().nullable(),
+  from_fetched_at: timestamp.nullable(),
+  to_fetched_at: timestamp.nullable(),
   body_diff: z.string().nullable(),
   from_body: z.string().nullable(),
   to_body: z.string().nullable(),
