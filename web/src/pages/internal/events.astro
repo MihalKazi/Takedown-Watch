@@ -52,9 +52,21 @@ function whatChanged(e: Ev) {
       body { font-family: system-ui, sans-serif; margin: 0; padding: 1.5rem; background: #0b0d0a; color: #e8ece4; }
       h1 { font-size: 1.25rem; margin: 0 0 0.25rem; }
       .meta { color: #9aa294; font-size: 0.85rem; margin-bottom: 1.25rem; }
-      table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-      th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #262a22; vertical-align: top; }
-      th { color: #9aa294; font-weight: 600; position: sticky; top: 0; background: #0b0d0a; }
+      .table-wrap { overflow-x: auto; border: 1px solid #262a22; border-radius: 0.4rem; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.85rem; table-layout: fixed; }
+      th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #262a22; vertical-align: top; overflow: hidden; }
+      th { color: #9aa294; font-weight: 600; position: sticky; top: 0; background: #0b0d0a; white-space: nowrap; }
+      .col-sev { width: 3rem; }
+      .col-detected { width: 7rem; }
+      .col-outlet { width: 7rem; }
+      .col-article { width: 10rem; }
+      .col-type { width: 7rem; }
+      .col-conf { width: 5.5rem; }
+      .col-age { width: 4rem; }
+      .col-diff { width: 20rem; }
+      .col-review { width: 7rem; }
+      .col-notes { width: 10rem; }
+      .url-cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
       tr:hover { background: #14170f; }
       .type { font-weight: 600; }
       .age { color: #9aa294; white-space: nowrap; }
@@ -94,28 +106,33 @@ function whatChanged(e: Ev) {
     {events.length === 0 ? (
       <p class="empty">No events recorded yet. Run <code>tw recheck</code> / <code>tw crawl</code> against a tracked article a second time to generate one.</p>
     ) : (
+      <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>Sev</th>
-            <th>Detected</th>
-            <th>Outlet</th>
-            <th>Article</th>
-            <th>Type</th>
-            <th>Confidence</th>
-            <th>Age at change</th>
-            <th>What changed</th>
-            <th>Review</th>
-            <th>Notes</th>
+            <th class="col-sev">Sev</th>
+            <th class="col-detected">Detected</th>
+            <th class="col-outlet">Outlet</th>
+            <th class="col-article">Article</th>
+            <th class="col-type">Type</th>
+            <th class="col-conf">Confidence</th>
+            <th class="col-age">Age</th>
+            <th class="col-diff">What changed</th>
+            <th class="col-review">Review</th>
+            <th class="col-notes">Notes</th>
           </tr>
         </thead>
         <tbody>
           {events.map((e) => (
             <tr>
               <td class="sev">{e.severity}</td>
-              <td>{e.detected_at}</td>
+              <td title={e.detected_at}>{e.detected_at.replace("T", " ").slice(0, 16)}</td>
               <td>{e.outlet_name}</td>
-              <td><a href={e.article_url} target="_blank" rel="noopener">{e.article_url}</a></td>
+              <td>
+                <a class="url-cell" href={e.article_url} target="_blank" rel="noopener" title={e.article_url}>
+                  {new URL(e.article_url).pathname}
+                </a>
+              </td>
               <td class="type">{e.type}</td>
               <td class={badge(e.confidence)}>{e.confidence}</td>
               <td class="age">{e.article_age_at_change.toFixed(1)}h</td>
@@ -159,6 +176,7 @@ function whatChanged(e: Ev) {
           ))}
         </tbody>
       </table>
+      </div>
       <p class="meta">
         Review via CLI: <code>tw review &lt;event_id&gt; --reviewed-by name --decision confirmed|dismissed|escalated</code>
         &nbsp;·&nbsp; annotate: <code>tw annotate &lt;event_id&gt; --author name --body "..."</code>
