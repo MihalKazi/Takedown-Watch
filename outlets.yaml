@@ -39,6 +39,8 @@ outlets:
     language: bn
     base_url: https://www.kalerkantho.com
     tier: bangla_mass
+    needs_js: true
+    notes: Homepage and sitemap candidates 403 even with honest UA (Cloudflare challenge); tw discover found real sitemap URLs in robots.txt but can't fetch past the challenge. Needs Playwright fallback to confirm reachability.
     rss_urls: []
     sitemap_urls: []
     limitations:
@@ -127,7 +129,7 @@ outlets:
     name: Naya Diganta
     language: bn
     base_url: https://dailynayadiganta.com
-    notes: www. host serves a TLS certificate not valid for www (2026-09-24); apex works.
+    notes: www. host serves a TLS certificate not valid for www (2026-09-24); apex works. sitemap.xml 200s as a sitemapindex but every child <loc> points to demo.ccdrbd.org (CMS vendor demo domain), which does not resolve (2026-09-24). Outlet-side misconfiguration, not fixable here.
     tier: bangla_other
     rss_urls: []
     sitemap_urls: []
@@ -329,6 +331,8 @@ outlets:
     language: bn
     base_url: https://www.jagonews24.com
     tier: online_native
+    needs_js: true
+    notes: Homepage 200 but sitemaps.xml returns 403 even with honest UA; likely bot-filtered. Needs Playwright fallback to confirm reachability.
 
   # --- State wire ---
     rss_urls: []
@@ -354,10 +358,10 @@ outlets:
 
   # --- Independent ---
     rss_urls: []
-    sitemap_urls: []
+    sitemap_urls:
+      - https://www.bssnews.net/sitemap.xml
     limitations:
       - no_rss
-      - no_sitemap
     discovery:
       checked_at: '2026-09-23T20:28:47.326518+00:00'
       vantage: local
@@ -395,6 +399,7 @@ outlets:
     language: en
     base_url: https://thedissent.news
     tier: independent
+    notes: No RSS, no sitemap, robots.txt lists none; homepage 200 with permissive robots.txt. Genuinely no machine-discoverable article feed as of 2026-09-24 — needs listing-page scraping, not a config fix.
     rss_urls: []
     sitemap_urls: []
     limitations:
