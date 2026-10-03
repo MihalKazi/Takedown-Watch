@@ -67,9 +67,14 @@ function whatChanged(e: Ev) {
       .unreviewed { color: #9aa294; }
       .notes { margin: 0; padding-left: 1rem; }
       code { background: #14170f; padding: 0.1rem 0.3rem; border-radius: 3px; }
-      .diff { max-width: 32rem; max-height: 10rem; overflow-y: auto; }
-      .diff .old { color: #c98a8a; }
-      .diff .new { color: #7fd17f; }
+      .diff-cell { max-width: 32rem; }
+      .diff-scroll {
+        max-height: 10rem;
+        overflow-y: auto;
+        display: block;
+      }
+      .diff-scroll .old { color: #c98a8a; }
+      .diff-scroll .new { color: #7fd17f; }
       .muted { color: #9aa294; }
       .body-diff {
         white-space: pre-wrap;
@@ -114,17 +119,16 @@ function whatChanged(e: Ev) {
               <td class="type">{e.type}</td>
               <td class={badge(e.confidence)}>{e.confidence}</td>
               <td class="age">{e.article_age_at_change.toFixed(1)}h</td>
-              <td class="diff">
+              <td class="diff-cell">
+                <div class="diff-scroll">
                 {(() => {
                   const changes = whatChanged(e);
                   if (changes.length === 0) return <span class="muted">— (see type)</span>;
                   return changes.map((c) =>
                     "diff" in c ? (
-                      <pre class="body-diff">
-                        {c.diff.split("\n").map((line) => (
-                          <div class={line.startsWith("-") ? "old" : line.startsWith("+") ? "new" : ""}>{line}</div>
-                        ))}
-                      </pre>
+                      <div class="body-diff">{c.diff.split("\n").map((line) => (
+                        <div class={line.startsWith("-") ? "old" : line.startsWith("+") ? "new" : ""}>{line}</div>
+                      ))}</div>
                     ) : (
                       <>
                         <div class="old">− {c.before ?? "—"}</div>
@@ -133,6 +137,7 @@ function whatChanged(e: Ev) {
                     ),
                   );
                 })()}
+                </div>
               </td>
               <td>
                 {e.reviewed_by ? (
