@@ -6,7 +6,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { z } from "zod";
 import { DATASET_DIR, SCHEMA_VERSION } from "./common.ts";
-import { FILES, type CaptureVolume, type Coverage, type ExtractionHealth, type FileName, type Meta, type Outlets } from "./files.ts";
+import { FILES, type CaptureVolume, type Coverage, type EventSummary, type ExtractionHealth, type FileName, type Meta, type Outlets } from "./files.ts";
 
 export interface Dataset {
   meta: Meta;
@@ -14,6 +14,7 @@ export interface Dataset {
   outlets: Outlets;
   health: ExtractionHealth;
   volume: CaptureVolume;
+  events: EventSummary;
 }
 
 export class DataContractError extends Error {
@@ -90,6 +91,10 @@ function crossCheck(d: Dataset): void {
     check(reasons.get(keyOf(h)) === h.suppression_reason, `health ${keyOf(h)}: suppression differs from coverage.json`);
     check(h.suppressed || h.outlets_contributing! >= min, `health ${keyOf(h)}: published with fewer than min_group_outlets contributing`);
   }
+  for (const ev of d.events.groups) {
+    check(reasons.get(keyOf(ev)) === ev.suppression_reason, `event-summary ${keyOf(ev)}: suppression differs from coverage.json`);
+    check(ev.suppressed || ev.outlets_contributing! >= min, `event-summary ${keyOf(ev)}: published with fewer than min_group_outlets contributing`);
+  }
 
   const all = d.coverage.groups.find((g) => g.group === "all");
   if (!all) throw new DataContractError("coverage.json has no 'all' group");
@@ -127,6 +132,7 @@ export function loadDataset(dir: string = dataDir()): Dataset {
     outlets: parseFile(dir, "outlets.json"),
     health: parseFile(dir, "extraction-health.json"),
     volume: parseFile(dir, "capture-volume.json"),
+    events: parseFile(dir, "event-summary.json"),
   };
   crossCheck(d);
   if (dir === dataDir()) cached = d;

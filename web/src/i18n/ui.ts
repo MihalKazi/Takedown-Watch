@@ -1,7 +1,7 @@
 export const LOCALES = ["bn", "en"] as const;
 export type Locale = (typeof LOCALES)[number];
 
-export const ROUTES = ["", "outlets", "methodology", "data"] as const;
+export const ROUTES = ["", "outlets", "methodology", "data", "events"] as const;
 export type Route = (typeof ROUTES)[number];
 
 const en = {
@@ -15,6 +15,7 @@ const en = {
   "nav.outlets": "Outlets",
   "nav.methodology": "Methodology",
   "nav.data": "Data",
+  "nav.events": "Events",
   "lang.switch": "বাংলা",
   "lang.switchLabel": "Read this page in Bangla",
 
@@ -90,6 +91,18 @@ const en = {
   "outlets.countOne": "1 outlet",
   "outlets.health": "Extraction health by group",
 
+  "events.title": "Removals and edits",
+  "events.lede":
+    "What changed after publication, aggregated across groups of outlets. No figure here names a specific outlet: the policy behind that choice, and why, is public.",
+  "events.policyLink": "Why outlets aren't named yet",
+  "events.trustBar":
+    "Only counted here: a mechanically confirmed change, reviewed by a named human analyst, whose review was published. Everything short of that stays in the internal record.",
+  "events.byGroup": "By language and outlet group",
+  "events.published": "Published events",
+  "events.byType": "By type",
+  "events.empty": "No events have cleared the publication bar yet.",
+  "events.suppressed": "Withheld: fewer than {min} outlets contributing in this group.",
+
   "method.title": "Methodology",
   "method.state": "Current state of the system",
   "method.versions": "Versions in this dataset",
@@ -140,6 +153,7 @@ const bn: Record<Key, string> = {
   "nav.outlets": "সংবাদমাধ্যম",
   "nav.methodology": "পদ্ধতি",
   "nav.data": "ডেটা",
+  "nav.events": "ঘটনা",
   "lang.switch": "English",
   "lang.switchLabel": "Read this page in English",
 
@@ -214,6 +228,18 @@ const bn: Record<Key, string> = {
   "outlets.count": "{n}টি সংবাদমাধ্যম",
   "outlets.countOne": "১টি সংবাদমাধ্যম",
   "outlets.health": "গোষ্ঠী অনুযায়ী পাঠ্য নিষ্কাশনের অবস্থা",
+
+  "events.title": "অপসারণ ও সম্পাদনা",
+  "events.lede":
+    "প্রকাশের পর যা পরিবর্তিত হয়েছে, গোষ্ঠী অনুযায়ী সমষ্টিগতভাবে দেখানো। এখানে কোনো সংখ্যা নির্দিষ্ট কোনো সংবাদমাধ্যমের নাম বহন করে না: এই সিদ্ধান্তের পেছনের নীতি প্রকাশ্য।",
+  "events.policyLink": "সংবাদমাধ্যমের নাম এখনো প্রকাশ না করার কারণ",
+  "events.trustBar":
+    "এখানে শুধু তা গণনা করা হয়েছে: যান্ত্রিকভাবে নিশ্চিত পরিবর্তন, একজন নামধারী বিশ্লেষক দ্বারা পর্যালোচিত, এবং যার পর্যালোচনা প্রকাশিত হয়েছে। এর চেয়ে কম কিছু অভ্যন্তরীণ নথিতেই থাকে।",
+  "events.byGroup": "ভাষা ও সংবাদমাধ্যম-গোষ্ঠী অনুযায়ী",
+  "events.published": "প্রকাশিত ঘটনা",
+  "events.byType": "ধরন অনুযায়ী",
+  "events.empty": "এখনো কোনো ঘটনা প্রকাশের মান অতিক্রম করেনি।",
+  "events.suppressed": "গোপন রাখা হয়েছে: এই গোষ্ঠীতে {min}-এর কম সংবাদমাধ্যম অবদান রাখছে।",
 
   "method.title": "পদ্ধতি",
   "method.state": "ব্যবস্থার বর্তমান অবস্থা",

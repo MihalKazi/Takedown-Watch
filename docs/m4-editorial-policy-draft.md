@@ -74,11 +74,11 @@ build" question is already answered and only the "may we build it" question was 
 
 | Field | Value |
 |---|---|
-| Approved by | _(name, role)_ |
-| Date | _(date)_ |
-| Option chosen (Q1) | _(A / B / C / other)_ |
-| Severity/review bar (Q2) | _(confidence floor, review requirement, minimum age)_ |
-| Review cycle | _(e.g. revisit every 6 months, or after N published events)_ |
+| Approved by | Mihal Kazi |
+| Date | 2026-10-03 |
+| Option chosen (Q1) | B — anonymised/aggregated. No outlet individually identifiable in public data; counts by group (all/language/tier) only, same suppression rule as `coverage.json` (groups with fewer than `min_group_outlets` contributing are withheld). |
+| Severity/review bar (Q2) | An event is eligible for publication only if **all** of: `confidence = "confirmed"` AND it has an `annotation` with `review_state = "published"` AND `event.review_decision = "confirmed"` from a named human reviewer. |
+| Review cycle | Revisit every 6 months, or sooner if a published figure is later found wrong (see unpublish path below) or the org decides naming policy should change. |
 
-Until every row above is filled in by someone with the authority to make this call for Activate
-Rights, M4 stays closed per CLAUDE.md.
+M4 is unblocked under this policy. Any later change to Q1 or Q2 requires updating this table,
+not just the code.

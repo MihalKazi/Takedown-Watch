@@ -29,7 +29,7 @@ from sqlalchemy import Engine, distinct, func, select
 
 from tw import __version__
 from tw.config import Settings
-from tw.db.models import ArchiveAttempt, Article, FetchAttempt, Listing, Outlet, Snapshot
+from tw.db.models import ArchiveAttempt, Article, Annotation, Event, FetchAttempt, Listing, Outlet, Snapshot
 from tw.db.session import session_scope
 from tw.db.types import utcnow
 from tw.extract.extractor import EXTRACTOR_VERSION
@@ -141,6 +141,28 @@ class CaptureVolume(_File):
     series: list[VolumePoint]
 
 
+class GroupEventSummary(_Strict):
+    """M4, per docs/m4-editorial-policy-draft.md (signed off 2026-10-03, option B): no outlet is
+    individually identifiable. An event counts here only if confidence=confirmed AND
+    review_decision=confirmed AND it carries a published-state annotation. Same suppression rule
+    as GroupCoverage/GroupHealth -- a figure this small would itself identify an outlet."""
+
+    group: Literal["all", "language", "tier"]
+    key: str
+    outlets_contributing: int | None
+    suppressed: bool
+    suppression_reason: Literal["small_group", "complementary"] | None
+    published_events: int | None
+    by_type: dict[str, int] | None
+
+
+class EventSummary(_File):
+    trust_bar: Literal["confirmed_confidence+confirmed_review+published_annotation"] = (
+        "confirmed_confidence+confirmed_review+published_annotation"
+    )
+    groups: list[GroupEventSummary]
+
+
 @dataclass
 class _OutletFigures:
     """Internal only: never written."""
@@ -161,6 +183,8 @@ class _OutletFigures:
     health_sample: int = 0
     short: int = 0
     errors: int = 0
+    published_events: int = 0
+    published_by_type: dict[str, int] = field(default_factory=dict)
 
 
 def _rate(num: int, den: int) -> float | None:
@@ -197,6 +221,21 @@ def _collect(s) -> list[_OutletFigures]:
         _med, f.short, _long, _empty, f.errors = _health([(n, bool((m or {}).get("extract_error"))) for n, m in recent])
         f.lengths = [n for n, _ in recent]
         f.health_sample = len(recent)
+
+        # M4 publish gate (docs/m4-editorial-policy-draft.md, signed off): an event counts here
+        # only if confidence=confirmed AND review_decision=confirmed AND it has a
+        # review_state="published" annotation. No per-article or per-event detail crosses into
+        # this file -- only a type count, and only inside whatever group-level aggregate survives
+        # the same suppression rule as coverage.json.
+        qualifying = s.execute(
+            select(Event.type).join(Article, Event.article_id == Article.id)
+            .where(Article.outlet_id == o.id, Article.merged_into_id.is_(None),
+                  Event.confidence == "confirmed", Event.review_decision == "confirmed",
+                  Event.id.in_(select(Annotation.event_id).where(Annotation.review_state == "published")))
+        ).all()
+        for (etype,) in qualifying:
+            f.published_events += 1
+            f.published_by_type[etype] = f.published_by_type.get(etype, 0) + 1
         out.append(f)
     return out
 
@@ -297,6 +336,19 @@ def _health_row(group: str, key: str, fs: list[_OutletFigures], reason: Reason |
                        short_bodies=short, extract_errors=errors)
 
 
+def _event_summary_row(group: str, key: str, fs: list[_OutletFigures], reason: Reason | None) -> GroupEventSummary:
+    suppressed = reason is not None
+    base = dict(group=group, key=key, outlets_contributing=None if suppressed else sum(1 for f in fs if f.snapshots > 0),
+                suppressed=suppressed, suppression_reason=reason)
+    if suppressed:
+        return GroupEventSummary(**base, published_events=None, by_type=None)
+    by_type: dict[str, int] = {}
+    for f in fs:
+        for etype, n in f.published_by_type.items():
+            by_type[etype] = by_type.get(etype, 0) + n
+    return GroupEventSummary(**base, published_events=sum(f.published_events for f in fs), by_type=by_type)
+
+
 def build(engine: Engine, settings: Settings) -> dict[str, BaseModel]:
     now = utcnow()
     with session_scope(engine) as s:
@@ -342,6 +394,7 @@ def build(engine: Engine, settings: Settings) -> dict[str, BaseModel]:
             degraded_at=DEGRADED_AT, failing_at=FAILING_AT, groups=[_health_row(*r) for r in rows],
         ),
         "capture-volume.json": CaptureVolume(generated_at=now, suppressed=volume_suppressed, series=series),
+        "event-summary.json": EventSummary(generated_at=now, groups=[_event_summary_row(*r) for r in rows]),
     }
     files["meta.json"] = Meta(
         generated_at=now, pipeline_version=__version__, extractor_version=EXTRACTOR_VERSION,

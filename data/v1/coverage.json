@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-24T16:26:43.651474Z",
+  "generated_at": "2026-10-03T09:26:00.321611Z",
   "groups": [
     {
       "archive_rate": 0.0005,
@@ -130,6 +130,6 @@
   ],
   "outlets_contributing": 13,
   "outlets_monitored": 18,
-  "outlets_with_sources": 13,
+  "outlets_with_sources": 15,
   "schema_version": "1.0.0"
 }

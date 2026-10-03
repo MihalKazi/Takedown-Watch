@@ -123,12 +123,42 @@ export const CaptureVolume = z
   })
   .refine((v) => !v.suppressed || v.series.length === 0, { message: "suppressed series must be empty" });
 
+/**
+ * event-summary.json: M4 publish gate. docs/m4-editorial-policy-draft.md (signed off
+ * 2026-10-03, option B) -- no outlet is individually identifiable. An event counts only if
+ * confidence=confirmed AND review_decision=confirmed AND it carries a published-state
+ * annotation. Same suppression rule as GroupCoverage.
+ */
+export const GroupEventSummary = z
+  .strictObject({
+    group: groupKind,
+    key: z.string().min(1),
+    outlets_contributing: count.nullable(),
+    suppressed: z.boolean(),
+    suppression_reason: suppressionReason.nullable(),
+    published_events: count.nullable(),
+    by_type: z.record(z.string(), count).nullable(),
+  })
+  .refine((g) => g.suppressed === (g.published_events === null) && g.suppressed === (g.by_type === null), {
+    message: "published_events and by_type must be null exactly when suppressed",
+  })
+  .refine((g) => g.suppressed === (g.suppression_reason !== null), {
+    message: "suppression_reason must be set exactly when suppressed",
+  });
+
+export const EventSummary = z.strictObject({
+  ...fileHeader,
+  trust_bar: z.literal("confirmed_confidence+confirmed_review+published_annotation"),
+  groups: z.array(GroupEventSummary),
+});
+
 export const FILES = {
   "meta.json": Meta,
   "coverage.json": Coverage,
   "outlets.json": Outlets,
   "extraction-health.json": ExtractionHealth,
   "capture-volume.json": CaptureVolume,
+  "event-summary.json": EventSummary,
 } as const;
 
 export type FileName = keyof typeof FILES;
@@ -140,6 +170,8 @@ export type MonitoredOutlet = z.infer<typeof MonitoredOutlet>;
 export type ExtractionHealth = z.infer<typeof ExtractionHealth>;
 export type GroupHealth = z.infer<typeof GroupHealth>;
 export type CaptureVolume = z.infer<typeof CaptureVolume>;
+export type EventSummary = z.infer<typeof EventSummary>;
+export type GroupEventSummary = z.infer<typeof GroupEventSummary>;
 export type Health = z.infer<typeof health>;
 export type Tier = z.infer<typeof tier>;
 export type Language = z.infer<typeof language>;

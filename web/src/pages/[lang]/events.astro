@@ -1,0 +1,137 @@
+---
+import Base from "../../layouts/Base.astro";
+import { loadDataset } from "../../schemas/dataset.ts";
+import { num } from "../../i18n/format.ts";
+import { href, LOCALES, t, type Locale } from "../../i18n/ui.ts";
+import type { Tier } from "../../schemas/files.ts";
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Locale;
+const d = loadDataset();
+const min = d.meta.min_group_outlets;
+
+const all = d.events.groups.find((g) => g.group === "all")!;
+const byLanguage = d.events.groups.filter((g) => g.group === "language");
+const tiers: Tier[] = ["bangla_mass", "bangla_other", "english", "online_native", "state_wire", "independent"];
+const byTier = tiers
+  .map((tier) => d.events.groups.find((g) => g.group === "tier" && g.key === tier))
+  .filter((g): g is NonNullable<typeof g> => g !== undefined);
+---
+
+<Base lang={lang} route="events" title={t(lang, "events.title")}>
+  <header class="intro">
+    <h1>{t(lang, "events.title")}</h1>
+    <p class="lede muted">{t(lang, "events.lede")}</p>
+    <p class="trust-bar">{t(lang, "events.trustBar")}</p>
+    <p class="policy-link">
+      <a href={`${href(lang, "methodology")}#state`}>{t(lang, "events.policyLink")}</a>
+    </p>
+  </header>
+
+  <section class="total">
+    {all.suppressed ? (
+      <p class="muted">{t(lang, "events.empty")}</p>
+    ) : (
+      <>
+        <div class="stat">
+          <span class="num">{num(lang, all.published_events ?? 0)}</span>
+          <span class="label muted">{t(lang, "events.published")}</span>
+        </div>
+        {all.by_type && Object.keys(all.by_type).length > 0 && (
+          <ul class="by-type">
+            {Object.entries(all.by_type).map(([type, n]) => (
+              <li>
+                <span class="type">{type}</span>
+                <span class="n muted">{num(lang, n)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </>
+    )}
+  </section>
+
+  <section class="groups">
+    <h2>{t(lang, "events.byGroup")}</h2>
+    <div class="group-grid">
+      {[...byLanguage, ...byTier].map((g) => (
+        <div class="group-card">
+          <h3>{g.group === "language" ? t(lang, `lang.${g.key as "bn" | "en"}`) : t(lang, `tier.${g.key as Tier}`)}</h3>
+          {g.suppressed ? (
+            <p class="muted small">{t(lang, "events.suppressed", { min: num(lang, min) })}</p>
+          ) : (
+            <span class="num">{num(lang, g.published_events ?? 0)}</span>
+          )}
+        </div>
+      ))}
+    </div>
+  </section>
+</Base>
+
+<style>
+  .intro {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: clamp(1.75rem, 1rem + 2vw, 2.75rem);
+    max-width: var(--measure);
+  }
+  .trust-bar {
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--rule);
+  }
+  .policy-link a {
+    font-weight: 600;
+  }
+  .total {
+    border-top: 1px solid var(--rule-strong);
+    padding-top: 1.25rem;
+    margin-bottom: 2rem;
+  }
+  .stat {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+  .stat .num {
+    font-size: var(--step-3);
+    font-weight: 700;
+  }
+  .by-type {
+    list-style: none;
+    margin: 1rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.3rem;
+  }
+  .by-type li {
+    display: flex;
+    justify-content: space-between;
+    max-width: 24rem;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 0.2rem;
+  }
+  .group-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    gap: 1rem;
+  }
+  .group-card {
+    border: 1px solid var(--rule);
+    border-radius: 0.5rem;
+    padding: 0.9rem 1rem;
+  }
+  .group-card h3 {
+    font-size: var(--step--1);
+    margin: 0 0 0.4rem;
+  }
+  .group-card .num {
+    font-size: var(--step-1);
+    font-weight: 700;
+  }
+  .small {
+    font-size: var(--step--1);
+  }
+</style>

@@ -14,7 +14,7 @@ interface Props {
 const { lang, route, title, description } = Astro.props;
 const other = otherLocale(lang);
 const d = loadDataset();
-const nav: Route[] = ["", "outlets", "methodology", "data"];
+const nav: Route[] = ["", "outlets", "methodology", "data", "events"];
 const pageTitle = route === "" ? `${t(lang, "site.name")}: ${title}` : `${title} · ${t(lang, "site.name")}`;
 ---
 
