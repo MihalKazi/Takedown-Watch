@@ -96,6 +96,41 @@ function whatChanged(e: Ev) {
         font-size: 0.8rem;
         line-height: 1.4;
       }
+      .full-text summary {
+        cursor: pointer;
+        color: #8fb6e0;
+        font-size: 0.8rem;
+        padding: 0.25rem 0;
+      }
+      .full-text summary:hover { text-decoration: underline; }
+      .full-text[open] summary { margin-bottom: 0.5rem; }
+      .full-text-block {
+        position: fixed;
+        inset: 3rem 2rem;
+        z-index: 10;
+        background: #0b0d0a;
+        border: 1px solid #3a3e34;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        overflow-y: auto;
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.6);
+      }
+      .full-text-close { font-size: 0.8rem; margin: 0 0 1rem; }
+      .archive-link { margin-left: 0.6rem; font-size: 0.75rem; font-weight: 400; color: #7fd17f; }
+      .full-text-label {
+        font-weight: 700;
+        color: #e0c767;
+        margin: 1.25rem 0 0.4rem;
+        font-size: 0.85rem;
+      }
+      .full-text-label:first-child { margin-top: 0; }
+      .full-text-body {
+        white-space: pre-wrap;
+        line-height: 1.6;
+        font-size: 0.9rem;
+        margin: 0;
+        max-width: 48rem;
+      }
     </style>
   </head>
   <body>
@@ -155,6 +190,32 @@ function whatChanged(e: Ev) {
                   );
                 })()}
                 </div>
+                {e.from_body && e.to_body && e.from_body !== e.to_body && (
+                  <details class="full-text">
+                    <summary>Read full article text</summary>
+                    <div class="full-text-block">
+                      <p class="full-text-close muted">Click "Read full article text" again to close this.</p>
+                      <p class="full-text-label">
+                        Original (older version)
+                        {e.from_archive_url && (
+                          <a class="archive-link" href={e.from_archive_url} target="_blank" rel="noopener">
+                            independent proof (Internet Archive copy)
+                          </a>
+                        )}
+                      </p>
+                      <p class="full-text-body">{e.from_body}</p>
+                      <p class="full-text-label">
+                        Current (newer version)
+                        {e.to_archive_url && (
+                          <a class="archive-link" href={e.to_archive_url} target="_blank" rel="noopener">
+                            independent proof (Internet Archive copy)
+                          </a>
+                        )}
+                      </p>
+                      <p class="full-text-body">{e.to_body}</p>
+                    </div>
+                  </details>
+                )}
               </td>
               <td>
                 {e.reviewed_by ? (

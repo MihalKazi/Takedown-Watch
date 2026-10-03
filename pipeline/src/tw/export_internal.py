@@ -22,7 +22,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import aliased
 
-from tw.db.models import Annotation, Article, Event, Outlet, Snapshot
+from tw.db.models import Annotation, Article, ArchiveAttempt, Event, Outlet, Snapshot
 from tw.db.session import session_scope
 from tw.db.types import utcnow
 from tw.discover.ingest import _is_non_article_path
@@ -61,6 +61,10 @@ class InternalEvent(_Strict):
     from_final_url: str | None
     to_final_url: str | None
     body_diff: str | None  # short excerpt around the first differing region, not the full body
+    from_body: str | None  # full text, for a non-technical reviewer to read both versions whole
+    to_body: str | None
+    from_archive_url: str | None  # Internet Archive copy -- the independent proof (invariant 2);
+    to_archive_url: str | None    # null if that snapshot hasn't been archived yet
     reviewed_by: str | None
     review_decision: str | None
     published: bool
@@ -125,6 +129,14 @@ def build(engine: Engine, *, limit: int = 2000) -> InternalEvents:
                 select(Annotation).where(Annotation.event_id.in_(event_ids)).order_by(Annotation.written_at)
             ):
                 anns_by_event.setdefault(ann.event_id, []).append(ann)
+        snap_ids = {sid for _, _, _, fs, ts in rows for sid in (fs.id if fs else None, ts.id if ts else None) if sid}
+        archive_url_by_snap: dict[int, str] = {}
+        if snap_ids:
+            for aa in s.scalars(
+                select(ArchiveAttempt).where(ArchiveAttempt.snapshot_id.in_(snap_ids), ArchiveAttempt.outcome == "ok")
+            ):
+                if aa.archive_url:
+                    archive_url_by_snap[aa.snapshot_id] = aa.archive_url
         events = [
             InternalEvent(
                 id=ev.id, type=ev.type, detected_at=ev.detected_at, confidence=ev.confidence,
@@ -135,6 +147,9 @@ def build(engine: Engine, *, limit: int = 2000) -> InternalEvents:
                 from_published_at=fs.published_at if fs else None, to_published_at=ts.published_at if ts else None,
                 from_final_url=fs.final_url if fs else None, to_final_url=ts.final_url if ts else None,
                 body_diff=_body_diff_snippet(fs.body_text if fs else None, ts.body_text if ts else None),
+                from_body=fs.body_text if fs else None, to_body=ts.body_text if ts else None,
+                from_archive_url=archive_url_by_snap.get(fs.id) if fs else None,
+                to_archive_url=archive_url_by_snap.get(ts.id) if ts else None,
                 reviewed_by=ev.reviewed_by, review_decision=ev.review_decision, published=ev.published,
                 annotations=[
                     InternalAnnotation(author=an.author, written_at=an.written_at, body=an.body,
