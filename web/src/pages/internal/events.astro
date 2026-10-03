@@ -7,6 +7,7 @@
 // optional. If dist/ is ever pushed to the project's public git mirror (CLAUDE.md "must be
 // rehostable"), this page and data/internal/ must be excluded from that push.
 import { loadInternalEvents } from "../../schemas/internal.ts";
+import { diffWords } from "../../lib/diffWords.ts";
 
 export const prerender = true; // static: no live DB access from the Cloudflare Worker runtime
 
@@ -145,6 +146,8 @@ function whatChanged(e: Ev) {
         margin: 0;
         max-width: 48rem;
       }
+      .full-text-body mark.del { background: #4a2020; color: #f0a6a6; text-decoration: line-through; }
+      .full-text-body mark.ins { background: #1f3a20; color: #a6e0a6; }
     </style>
   </head>
   <body>
@@ -204,31 +207,45 @@ function whatChanged(e: Ev) {
                   );
                 })()}
                 </div>
-                {e.from_body && e.to_body && e.from_body !== e.to_body && (
-                  <details class="full-text">
-                    <summary>Read full article text</summary>
-                    <div class="full-text-block">
-                      <p class="full-text-label">
-                        Original (older version)
-                        {e.from_archive_url && (
-                          <a class="archive-link" href={e.from_archive_url} target="_blank" rel="noopener">
-                            independent proof (Internet Archive copy)
-                          </a>
-                        )}
-                      </p>
-                      <p class="full-text-body">{e.from_body}</p>
-                      <p class="full-text-label">
-                        Current (newer version)
-                        {e.to_archive_url && (
-                          <a class="archive-link" href={e.to_archive_url} target="_blank" rel="noopener">
-                            independent proof (Internet Archive copy)
-                          </a>
-                        )}
-                      </p>
-                      <p class="full-text-body">{e.to_body}</p>
-                    </div>
-                  </details>
-                )}
+                {e.from_body && e.to_body && e.from_body !== e.to_body && (() => {
+                  // word diff is O(n*m) -- cap it on very long bodies so the build stays fast;
+                  // beyond that just show plain text, no highlight
+                  const bothShort = e.from_body!.length < 20000 && e.to_body!.length < 20000;
+                  const diffed = bothShort ? diffWords(e.from_body!, e.to_body!) : null;
+                  return (
+                    <details class="full-text">
+                      <summary>Read full article text</summary>
+                      <div class="full-text-block">
+                        <p class="full-text-label">
+                          Original (older version)
+                          {e.from_archive_url && (
+                            <a class="archive-link" href={e.from_archive_url} target="_blank" rel="noopener">
+                              independent proof (Internet Archive copy)
+                            </a>
+                          )}
+                        </p>
+                        <p class="full-text-body">
+                          {diffed
+                            ? diffed.before.map((p) => p.tag === "del" ? <mark class="del">{p.text}</mark> : <>{p.text}</>)
+                            : e.from_body}
+                        </p>
+                        <p class="full-text-label">
+                          Current (newer version)
+                          {e.to_archive_url && (
+                            <a class="archive-link" href={e.to_archive_url} target="_blank" rel="noopener">
+                              independent proof (Internet Archive copy)
+                            </a>
+                          )}
+                        </p>
+                        <p class="full-text-body">
+                          {diffed
+                            ? diffed.after.map((p) => p.tag === "ins" ? <mark class="ins">{p.text}</mark> : <>{p.text}</>)
+                            : e.to_body}
+                        </p>
+                      </div>
+                    </details>
+                  );
+                })()}
               </td>
               <td>
                 {e.reviewed_by ? (
