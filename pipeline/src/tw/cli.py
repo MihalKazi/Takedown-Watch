@@ -85,6 +85,42 @@ def archive(
     typer.echo(f"coverage: {ok}/{total} snapshots archived" + (f" ({ok / total:.1%})" if total else ""))
 
 
+@app.command("backfill-recheck")
+def backfill_recheck() -> None:
+    """One-time: schedule a first recheck_article job for every already-captured article that
+    doesn't have one yet. Needed once, after M2's recheck scheduler lands on top of articles
+    captured before it existed -- capture.py only schedules a recheck right after a capture, so
+    anything captured earlier was never enqueued."""
+    from datetime import timedelta
+
+    from sqlalchemy import select
+
+    from tw.db.models import Article, Job
+    from tw.db.queue import enqueue
+    from tw.db.session import get_engine, session_scope
+    from tw.db.types import utcnow
+    from tw.recheck.backoff import delay_for_step
+
+    engine = get_engine()
+    scheduled = 0
+    with session_scope(engine) as s:
+        has_job = select(Job.ref_id).where(Job.kind == "recheck_article")
+        articles = list(s.scalars(
+            select(Article).where(Article.status == "captured", Article.id.notin_(has_job))
+        ))
+        for art in articles:
+            delay_total = delay_for_step(0)
+            if delay_total is None:
+                continue
+            run_at = art.first_seen + delay_total
+            delay = run_at - utcnow()
+            if delay.total_seconds() < 0:
+                delay = timedelta(0)
+            if enqueue(s, "recheck_article", art.id, delay=delay):
+                scheduled += 1
+    typer.echo(f"scheduled {scheduled} recheck job(s)")
+
+
 @app.command()
 def stats() -> None:
     """Coverage: articles, snapshots, archive rate, extraction health."""
