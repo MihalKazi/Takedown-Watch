@@ -7,6 +7,9 @@
 
 # local state: database, blob store, run reports
 var/
+
+# M2 internal dashboard data: names outlets/articles directly, never public before M4 (CLAUDE.md)
+data/internal/
 *.sqlite3
 *.db
 *.log

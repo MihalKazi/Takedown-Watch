@@ -105,5 +105,16 @@ def export() -> None:
     typer.echo(f"wrote {out}")
 
 
+@app.command("export-internal")
+def export_internal() -> None:
+    """Write data/internal/events.json for the authenticated M2 dashboard. Not the open dataset;
+    names outlets and articles directly. Never commit data/internal/ to the public git mirror."""
+    from tw.db.session import get_engine
+    from tw.export_internal import build, write
+
+    out = write(build(get_engine()), get_settings().data_dir)
+    typer.echo(f"wrote {out}")
+
+
 if __name__ == "__main__":
     app()

@@ -1,0 +1,91 @@
+---
+// Internal M2 event dashboard. NOT part of the public site.
+//
+// Gating: this path must be protected by Cloudflare Access (see docs/m1-proposal.md) -- Astro
+// itself does no auth here. CLAUDE.md: "Full event dashboard, authenticated" is permitted for
+// M2-M3; "Publish nothing about specific outlets until [the M4 editorial] policy exists" is not
+// optional. If dist/ is ever pushed to the project's public git mirror (CLAUDE.md "must be
+// rehostable"), this page and data/internal/ must be excluded from that push.
+import { loadInternalEvents } from "../../schemas/internal.ts";
+
+export const prerender = true; // static: no live DB access from the Cloudflare Worker runtime
+
+const data = loadInternalEvents();
+const events = data.events;
+
+function badge(confidence: string): string {
+  return confidence === "confirmed" ? "conf-confirmed" : confidence === "probable" ? "conf-probable" : "conf-unverified";
+}
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Takedown Watch — internal event dashboard</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body { font-family: system-ui, sans-serif; margin: 0; padding: 1.5rem; background: #0b0d0a; color: #e8ece4; }
+      h1 { font-size: 1.25rem; margin: 0 0 0.25rem; }
+      .meta { color: #9aa294; font-size: 0.85rem; margin-bottom: 1.25rem; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+      th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #262a22; vertical-align: top; }
+      th { color: #9aa294; font-weight: 600; position: sticky; top: 0; background: #0b0d0a; }
+      tr:hover { background: #14170f; }
+      .type { font-weight: 600; }
+      .age { color: #9aa294; white-space: nowrap; }
+      .conf-confirmed { color: #7fd17f; }
+      .conf-probable { color: #e0c767; }
+      .conf-unverified { color: #c98a8a; }
+      a { color: #8fb6e0; }
+      .empty { color: #9aa294; padding: 2rem 0; }
+    </style>
+  </head>
+  <body>
+    <h1>Event dashboard</h1>
+    <p class="meta">
+      {events.length} events · generated {data.generated_at} · internal only, not for distribution
+    </p>
+    {events.length === 0 ? (
+      <p class="empty">No events recorded yet. Run <code>tw recheck</code> / <code>tw crawl</code> against a tracked article a second time to generate one.</p>
+    ) : (
+      <table>
+        <thead>
+          <tr>
+            <th>Detected</th>
+            <th>Outlet</th>
+            <th>Article</th>
+            <th>Type</th>
+            <th>Confidence</th>
+            <th>Age at change</th>
+            <th>Headline</th>
+          </tr>
+        </thead>
+        <tbody>
+          {events.map((e) => (
+            <tr>
+              <td>{e.detected_at}</td>
+              <td>{e.outlet_name}</td>
+              <td><a href={e.article_url} target="_blank" rel="noopener">{e.article_url}</a></td>
+              <td class="type">{e.type}</td>
+              <td class={badge(e.confidence)}>{e.confidence}</td>
+              <td class="age">{e.article_age_at_change.toFixed(1)}h</td>
+              <td>
+                {e.from_headline !== e.to_headline ? (
+                  <>
+                    <div>− {e.from_headline ?? "—"}</div>
+                    <div>+ {e.to_headline ?? "—"}</div>
+                  </>
+                ) : (
+                  e.to_headline ?? e.from_headline ?? "—"
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </body>
+</html>
