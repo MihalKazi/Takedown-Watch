@@ -10,9 +10,9 @@
     "outlets.json"
   ],
   "first_capture_at": "2026-09-23T20:45:05.178104Z",
-  "generated_at": "2026-10-03T09:26:00.321611Z",
-  "last_capture_at": "2026-09-24T16:26:40.196086Z",
-  "last_listing_fetch_at": "2026-10-03T08:15:04.541894Z",
+  "generated_at": "2026-10-03T11:38:12.383485Z",
+  "last_capture_at": "2026-10-03T11:38:07.727665Z",
+  "last_listing_fetch_at": "2026-10-03T11:30:28.462368Z",
   "min_group_outlets": 3,
   "normaliser_version": "1",
   "pipeline_version": "0.1.0",

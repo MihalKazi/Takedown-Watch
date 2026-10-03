@@ -7,6 +7,7 @@ from tw.events import (
     BODY_CHANGED,
     BYLINE_CHANGED,
     BYLINE_REMOVED,
+    DATE_CHANGED,
     GONE_404,
     HEADLINE_CHANGED,
     REDIRECTED,
@@ -80,6 +81,34 @@ def test_diff_no_change_is_empty(engine) -> None:
         prev = _snap(s, art, now)
         same = _snap(s, art, now + timedelta(hours=1))
         assert diff_snapshots(prev, same) == []
+
+
+def test_diff_downgrades_date_change_from_unreliable_fallback(engine) -> None:
+    """A published_at sourced from trafilatura's own guess (not jsonld/meta) is unreliable --
+    observed landing on the fetch date itself. The event still gets written (invariant: capture
+    everything), but confidence must not be 'confirmed'."""
+    with session_scope(engine) as s:
+        _, art = _seed_article(s)
+        now = utcnow()
+        prev = _snap(s, art, now, published_at="2026-09-23",
+                    extra_meta={"field_sources": {"published_at": "jsonld"}})
+        new = _snap(s, art, now + timedelta(days=10), published_at="2026-10-03",
+                   extra_meta={"field_sources": {"published_at": "trafilatura_normalised"}})
+        drafts = diff_snapshots(prev, new)
+        assert [d.type for d in drafts] == [DATE_CHANGED]
+        assert drafts[0].confidence == "unverified"
+
+
+def test_diff_keeps_date_change_confirmed_when_both_sources_reliable(engine) -> None:
+    with session_scope(engine) as s:
+        _, art = _seed_article(s)
+        now = utcnow()
+        prev = _snap(s, art, now, published_at="2026-09-23",
+                    extra_meta={"field_sources": {"published_at": "jsonld"}})
+        new = _snap(s, art, now + timedelta(days=1), published_at="2026-09-24",
+                   extra_meta={"field_sources": {"published_at": "meta"}})
+        drafts = diff_snapshots(prev, new)
+        assert drafts[0].confidence == "confirmed"
 
 
 def test_diff_detects_redirected_final_url(engine) -> None:

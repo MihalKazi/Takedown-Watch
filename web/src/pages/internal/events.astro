@@ -16,6 +16,28 @@ const events = data.events;
 function badge(confidence: string): string {
   return confidence === "confirmed" ? "conf-confirmed" : confidence === "probable" ? "conf-probable" : "conf-unverified";
 }
+
+type Ev = (typeof events)[number];
+
+/** Only the field(s) that actually produced this event -- not every field on the article. */
+function whatChanged(e: Ev) {
+  switch (e.type) {
+    case "HEADLINE_CHANGED":
+      return [{ before: e.from_headline, after: e.to_headline }];
+    case "BYLINE_CHANGED":
+    case "BYLINE_REMOVED":
+      return [{ before: e.from_byline, after: e.to_byline }];
+    case "DATE_CHANGED":
+      return [{ before: e.from_published_at, after: e.to_published_at }];
+    case "REDIRECTED":
+      return [{ before: e.from_final_url, after: e.to_final_url }];
+    case "BODY_CHANGED":
+      return e.body_diff ? [{ diff: e.body_diff }] : [];
+    default:
+      return []; // GONE_*, DEINDEXED, UNPUBLISHED, RESTORED, ROBOTS_BLOCKED: no before/after
+      // snapshot field is the signal -- the event type itself is the fact.
+  }
+}
 ---
 
 <!doctype html>
@@ -45,6 +67,17 @@ function badge(confidence: string): string {
       .unreviewed { color: #9aa294; }
       .notes { margin: 0; padding-left: 1rem; }
       code { background: #14170f; padding: 0.1rem 0.3rem; border-radius: 3px; }
+      .diff { max-width: 32rem; }
+      .diff .old { color: #c98a8a; }
+      .diff .new { color: #7fd17f; }
+      .muted { color: #9aa294; }
+      .body-diff {
+        white-space: pre-wrap;
+        font-family: inherit;
+        margin: 0;
+        font-size: 0.8rem;
+        line-height: 1.4;
+      }
     </style>
   </head>
   <body>
@@ -65,7 +98,7 @@ function badge(confidence: string): string {
             <th>Type</th>
             <th>Confidence</th>
             <th>Age at change</th>
-            <th>Headline</th>
+            <th>What changed</th>
             <th>Review</th>
             <th>Notes</th>
           </tr>
@@ -80,15 +113,25 @@ function badge(confidence: string): string {
               <td class="type">{e.type}</td>
               <td class={badge(e.confidence)}>{e.confidence}</td>
               <td class="age">{e.article_age_at_change.toFixed(1)}h</td>
-              <td>
-                {e.from_headline !== e.to_headline ? (
-                  <>
-                    <div>− {e.from_headline ?? "—"}</div>
-                    <div>+ {e.to_headline ?? "—"}</div>
-                  </>
-                ) : (
-                  e.to_headline ?? e.from_headline ?? "—"
-                )}
+              <td class="diff">
+                {(() => {
+                  const changes = whatChanged(e);
+                  if (changes.length === 0) return <span class="muted">— (see type)</span>;
+                  return changes.map((c) =>
+                    "diff" in c ? (
+                      <pre class="body-diff">
+                        {c.diff.split("\n").map((line) => (
+                          <div class={line.startsWith("-") ? "old" : line.startsWith("+") ? "new" : ""}>{line}</div>
+                        ))}
+                      </pre>
+                    ) : (
+                      <>
+                        <div class="old">− {c.before ?? "—"}</div>
+                        <div class="new">+ {c.after ?? "—"}</div>
+                      </>
+                    ),
+                  );
+                })()}
               </td>
               <td>
                 {e.reviewed_by ? (

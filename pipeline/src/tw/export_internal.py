@@ -12,6 +12,7 @@ docs/m1-proposal.md / web/src/pages/internal/events.astro for the caveat.
 
 from __future__ import annotations
 
+import difflib
 import json
 from datetime import datetime
 from pathlib import Path
@@ -52,10 +53,36 @@ class InternalEvent(_Strict):
     article_url: str
     from_headline: str | None
     to_headline: str | None
+    from_byline: str | None
+    to_byline: str | None
+    from_published_at: str | None
+    to_published_at: str | None
+    from_final_url: str | None
+    to_final_url: str | None
+    body_diff: str | None  # short excerpt around the first differing region, not the full body
     reviewed_by: str | None
     review_decision: str | None
     published: bool
     annotations: list[InternalAnnotation]
+
+
+def _body_diff_snippet(before: str | None, after: str | None, *, context: int = 60) -> str | None:
+    """A short "- old / + new" excerpt around the first differing region, not the whole body --
+    this is for a reviewer to see at a glance what moved, not to republish the article."""
+    before, after = before or "", after or ""
+    if before == after:
+        return None
+    matcher = difflib.SequenceMatcher(a=before, b=after, autojunk=False)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == "equal":
+            continue
+        lo_a, lo_b = max(0, i1 - context), max(0, j1 - context)
+        old = before[lo_a:i2 + context]
+        new = after[lo_b:j2 + context]
+        prefix = "…" if lo_a > 0 else ""
+        suffix = "…" if i2 + context < len(before) else ""
+        return f"- {prefix}{old}{suffix}\n+ {prefix if lo_b > 0 else ''}{new}{'…' if j2 + context < len(after) else ''}"
+    return None  # equal under the matcher despite before != after (shouldn't happen)
 
 
 class InternalEvents(_Strict):
@@ -93,6 +120,10 @@ def build(engine: Engine, *, limit: int = 2000) -> InternalEvents:
                 severity=ev.severity, article_age_at_change=ev.article_age_at_change,
                 outlet_slug=o.slug, outlet_name=o.name, article_url=a.canonical_url,
                 from_headline=fs.headline if fs else None, to_headline=ts.headline if ts else None,
+                from_byline=fs.byline if fs else None, to_byline=ts.byline if ts else None,
+                from_published_at=fs.published_at if fs else None, to_published_at=ts.published_at if ts else None,
+                from_final_url=fs.final_url if fs else None, to_final_url=ts.final_url if ts else None,
+                body_diff=_body_diff_snippet(fs.body_text if fs else None, ts.body_text if ts else None),
                 reviewed_by=ev.reviewed_by, review_decision=ev.review_decision, published=ev.published,
                 annotations=[
                     InternalAnnotation(author=an.author, written_at=an.written_at, body=an.body,

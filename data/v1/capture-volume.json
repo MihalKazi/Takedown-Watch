@@ -1,12 +1,57 @@
 {
-  "generated_at": "2026-10-03T09:26:00.321611Z",
+  "generated_at": "2026-10-03T11:38:12.383485Z",
   "interval": "day",
   "schema_version": "1.0.0",
   "series": [
     {
-      "articles_first_seen": 7071,
+      "articles_first_seen": 7069,
       "date": "2026-09-24",
-      "snapshots": 6285
+      "snapshots": 6283
+    },
+    {
+      "articles_first_seen": 0,
+      "date": "2026-09-25",
+      "snapshots": 0
+    },
+    {
+      "articles_first_seen": 0,
+      "date": "2026-09-26",
+      "snapshots": 0
+    },
+    {
+      "articles_first_seen": 0,
+      "date": "2026-09-27",
+      "snapshots": 0
+    },
+    {
+      "articles_first_seen": 0,
+      "date": "2026-09-28",
+      "snapshots": 0
+    },
+    {
+      "articles_first_seen": 0,
+      "date": "2026-09-29",
+      "snapshots": 0
+    },
+    {
+      "articles_first_seen": 0,
+      "date": "2026-09-30",
+      "snapshots": 0
+    },
+    {
+      "articles_first_seen": 0,
+      "date": "2026-10-01",
+      "snapshots": 0
+    },
+    {
+      "articles_first_seen": 0,
+      "date": "2026-10-02",
+      "snapshots": 0
+    },
+    {
+      "articles_first_seen": 4909,
+      "date": "2026-10-03",
+      "snapshots": 3219
     }
   ],
   "suppressed": false,

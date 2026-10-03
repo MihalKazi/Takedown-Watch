@@ -110,12 +110,26 @@ def diff_snapshots(prev: Snapshot, new: Snapshot) -> list[EventDraft]:
         drafts.append(EventDraft(BODY_CHANGED, "confirmed", prev.id, new.id))
 
     if (prev.published_at or None) != (new.published_at or None):
-        drafts.append(EventDraft(DATE_CHANGED, "confirmed", prev.id, new.id))
+        drafts.append(EventDraft(DATE_CHANGED, _date_change_confidence(prev, new), prev.id, new.id))
 
     if prev.final_url != new.final_url:
         drafts.append(EventDraft(REDIRECTED, "confirmed", prev.id, new.id))
 
     return drafts
+
+
+def _date_change_confidence(prev: Snapshot, new: Snapshot) -> str:
+    """tw.extract.extractor falls back to trafilatura's own guessed date
+    (field_sources.published_at == "trafilatura_normalised") only when the page's jsonld/meta
+    published-date field is absent on that fetch. That guess is unreliable in practice -- it has
+    been observed landing on the fetch date itself rather than the article's real publish date,
+    producing a DATE_CHANGED event that isn't a real edit. If either side of the comparison came
+    from that fallback, this is not confirmed evidence of a real date change."""
+    for snap in (prev, new):
+        source = (snap.extra_meta or {}).get("field_sources", {}).get("published_at")
+        if source == "trafilatura_normalised":
+            return "unverified"
+    return "confirmed"
 
 
 def restored_event(prev_gone_event: Event, new_snapshot: Snapshot) -> EventDraft:
