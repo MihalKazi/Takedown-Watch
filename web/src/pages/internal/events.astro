@@ -81,6 +81,12 @@ function whatChanged(e: Ev) {
       .col-review { width: 7rem; }
       .col-notes { width: 10rem; }
       .url-cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+      .self-corrected {
+        font-size: 0.7rem;
+        font-weight: 400;
+        color: #9aa294;
+        margin-top: 0.15rem;
+      }
       .change-badge {
         display: inline-block;
         font-size: 0.7rem;
@@ -225,7 +231,14 @@ function whatChanged(e: Ev) {
                   </span>
                 )}
               </td>
-              <td class="type">{e.type}</td>
+              <td class="type">
+                {e.type}
+                {e.self_corrected && (
+                  <div class="self-corrected" title="Followed by RESTORED for the same article with nothing else between -- net effect resolved itself.">
+                    self-corrected
+                  </div>
+                )}
+              </td>
               <td class={badge(e.confidence)}>{e.confidence}</td>
               <td class="age">{e.article_age_at_change.toFixed(1)}h</td>
               <td class="diff-cell">

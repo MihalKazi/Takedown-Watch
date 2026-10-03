@@ -82,10 +82,28 @@ class InternalEvent(_Strict):
     annotations: list[InternalAnnotation]
     article_change_count: int  # how many events (any type) this article has had in total
     article_versions: list[ArticleVersion]  # every captured snapshot, oldest first, capped
+    self_corrected: bool  # a DEINDEXED/UNPUBLISHED immediately followed by RESTORED, same article,
+    # nothing else between -- still a real recorded observation (capture everything), but the net
+    # effect resolved itself, so the dashboard can say so instead of showing two raw alarms
 
 
 MAX_DIFF_SIDE_CHARS = 400  # hard cap per side: a reviewer glance, not a full-text dump
 MAX_VERSIONS_PER_ARTICLE = 20  # cap the "all versions" list sent to the browser per article
+
+_RESOLVING_PAIRS = {"DEINDEXED", "UNPUBLISHED"}  # event types RESTORED can resolve
+
+
+def _self_corrected_event_ids(events_by_article: dict[int, list[tuple[int, str, datetime]]]) -> set[int]:
+    """Event ids where a DEINDEXED/UNPUBLISHED was immediately followed, for the same article, by
+    a RESTORED with nothing else between them -- net effect was no real change."""
+    resolved: set[int] = set()
+    for events in events_by_article.values():
+        ordered = sorted(events, key=lambda e: e[2])
+        for (id_a, type_a, _), (id_b, type_b, _) in zip(ordered, ordered[1:]):
+            if type_a in _RESOLVING_PAIRS and type_b == "RESTORED":
+                resolved.add(id_a)
+                resolved.add(id_b)
+    return resolved
 
 
 def _body_diff_snippet(before: str | None, after: str | None, *, context: int = 60) -> str | None:
@@ -152,6 +170,14 @@ def build(engine: Engine, *, limit: int = 2000) -> InternalEvents:
                 .group_by(Event.article_id)
             ):
                 change_count_by_article[article_id] = count
+        events_by_article: dict[int, list[tuple[int, str, datetime]]] = {}
+        if article_ids:
+            for eid, aid, etype, edetected in s.execute(
+                select(Event.id, Event.article_id, Event.type, Event.detected_at)
+                .where(Event.article_id.in_(article_ids))
+            ):
+                events_by_article.setdefault(aid, []).append((eid, etype, edetected))
+        self_corrected_ids = _self_corrected_event_ids(events_by_article)
         snapshots_by_article: dict[int, list[Snapshot]] = {}
         if article_ids:
             for snap in s.scalars(
@@ -195,6 +221,7 @@ def build(engine: Engine, *, limit: int = 2000) -> InternalEvents:
                     )
                     for snap in snapshots_by_article.get(a.id, [])[:MAX_VERSIONS_PER_ARTICLE]
                 ],
+                self_corrected=ev.id in self_corrected_ids,
             )
             for ev, a, o, fs, ts in rows
         ]

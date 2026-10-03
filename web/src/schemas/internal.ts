@@ -59,6 +59,7 @@ export const InternalEvent = z.strictObject({
   annotations: z.array(InternalAnnotation),
   article_change_count: z.int().nonnegative(),
   article_versions: z.array(ArticleVersion),
+  self_corrected: z.boolean(),
 });
 
 export const InternalEvents = z.strictObject({
