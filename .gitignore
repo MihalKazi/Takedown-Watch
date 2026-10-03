@@ -1,0 +1,37 @@
+# secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# local state: database, blob store, run reports
+var/
+*.sqlite3
+*.db
+*.log
+logs/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# node (web/)
+node_modules/
+web/dist/
+web/.astro/
+
+# local design-tool working state (screenshots, logs) — not part of the repo
+.impeccable/
+
+# editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

@@ -1,0 +1,107 @@
+---
+import Base from "../../layouts/Base.astro";
+import { loadDataset } from "../../schemas/dataset.ts";
+import { dateTime } from "../../i18n/format.ts";
+import { LOCALES, asset, t, type Locale } from "../../i18n/ui.ts";
+import { DATASET_DIR } from "../../schemas/common.ts";
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Locale;
+const d = loadDataset();
+const files = ["coverage", "capture-volume", "extraction-health", "outlets", "meta"] as const;
+---
+
+<Base lang={lang} route="data" title={t(lang, "data.title")}>
+  <header class="intro">
+    <h1>{t(lang, "data.title")}</h1>
+    <p class="lede muted">{t(lang, "data.lede")}</p>
+  </header>
+
+  <div class="table-scroll">
+    <table class="ledger files">
+      <thead>
+        <tr>
+          <th scope="col">{t(lang, "data.file")}</th>
+          <th scope="col">{t(lang, "data.contents")}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          files.map((f) => (
+            <tr>
+              <th scope="row">
+                <a href={asset(`data/${DATASET_DIR}/${f}.json`)} lang="en" download>
+                  {f}.json
+                </a>
+              </th>
+              <td>{t(lang, `data.${f}`)}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+  <p class="stamp small muted num">
+    {t(lang, "data.schema")} <span lang="en">{d.meta.schema_version}</span> · {t(lang, "data.generated")}
+    <time datetime={d.meta.generated_at}>{dateTime(lang, d.meta.generated_at)}</time>
+  </p>
+
+  <div class="notes">
+    <section aria-labelledby="licence">
+      <h2 id="licence">{t(lang, "data.licence")}</h2>
+      <p>{t(lang, "data.licenceText")}</p>
+    </section>
+    <section aria-labelledby="contact">
+      <h2 id="contact">{t(lang, "data.contact")}</h2>
+      <p>{t(lang, "data.contactText")} <a href="https://activaterights.org">activaterights.org</a></p>
+    </section>
+    <section aria-labelledby="newsrooms">
+      <h2 id="newsrooms">{t(lang, "data.newsrooms")}</h2>
+      <p>{t(lang, "data.newsroomsText")}</p>
+    </section>
+    <section aria-labelledby="rehost">
+      <h2 id="rehost">{t(lang, "data.rehost")}</h2>
+      <p>{t(lang, "data.rehostText")}</p>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .intro {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    max-width: var(--measure);
+  }
+  .files {
+    max-width: 52rem;
+  }
+  .files th {
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .stamp {
+    margin-top: 0.75rem;
+  }
+  .notes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2.25rem clamp(2rem, 1rem + 3vw, 4rem);
+    margin-top: var(--gap-section);
+    max-width: 60rem;
+  }
+  @media (max-width: 48rem) {
+    .notes {
+      grid-template-columns: 1fr;
+    }
+  }
+  .notes h2 {
+    font-size: var(--step-0);
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.6rem;
+    border-bottom: 1px solid var(--rule-strong);
+  }
+</style>

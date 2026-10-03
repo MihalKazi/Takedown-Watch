@@ -1,0 +1,19 @@
+{
+  "name": "takedown-watch",
+  "private": true,
+  "description": "Shortcuts for the whole monorepo. Run every command from the repo root: npm run <name>.",
+  "scripts": {
+    "setup": "npm --prefix web install && cd pipeline && python -m uv sync",
+    "site": "npm --prefix web run build && npm --prefix web run preview",
+    "build": "npm --prefix web run build",
+    "preview": "npm --prefix web run preview",
+    "update": "cd pipeline && python -m uv run tw crawl && python -m uv run tw export && cd .. && npm --prefix web run build",
+    "update:quick": "cd pipeline && python -m uv run tw crawl --max-articles 20 && python -m uv run tw export && cd .. && npm --prefix web run build",
+    "crawl": "cd pipeline && python -m uv run tw crawl",
+    "export": "cd pipeline && python -m uv run tw export",
+    "archive": "cd pipeline && python -m uv run tw archive",
+    "stats": "cd pipeline && python -m uv run tw stats",
+    "discover": "cd pipeline && python -m uv run tw discover",
+    "test": "cd pipeline && python -m uv run pytest -q"
+  }
+}

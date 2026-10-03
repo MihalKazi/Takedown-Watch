@@ -1,0 +1,122 @@
+---
+import Base from "../../layouts/Base.astro";
+import { loadDataset } from "../../schemas/dataset.ts";
+import { num } from "../../i18n/format.ts";
+import { LOCALES, t, type Locale } from "../../i18n/ui.ts";
+import type { Tier } from "../../schemas/files.ts";
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Locale;
+const d = loadDataset();
+const tiers: Tier[] = ["bangla_mass", "bangla_other", "english", "online_native", "state_wire", "independent"];
+const byTier = tiers.map((tier) => ({ tier, outlets: d.outlets.outlets.filter((o) => o.tier === tier) }));
+const host = (u: string) => new URL(u).host.replace(/^www\./, "");
+---
+
+<Base lang={lang} route="outlets" title={t(lang, "outlets.title")}>
+  <header class="intro">
+    <h1>{t(lang, "outlets.title")}</h1>
+    <p class="lede muted">{t(lang, "outlets.lede")}</p>
+    <p class="policy">{t(lang, "outlets.policy")}</p>
+  </header>
+
+  <div class="tiers">
+    {
+      byTier.map(({ tier, outlets }) => (
+        <section class="tier" aria-labelledby={`tier-${tier}`}>
+          <h2 id={`tier-${tier}`}>
+            <span>{t(lang, `tier.${tier}`)}</span>
+            <span class="num muted count">{outlets.length === 1 ? t(lang, "outlets.countOne") : t(lang, "outlets.count", { n: num(lang, outlets.length) })}</span>
+          </h2>
+          <ul class="outlet-list">
+            {outlets.map((o) => (
+              <li>
+                <span class="name">{o.name}</span>
+                <span class="meta small muted">
+                  <span class="tag">{t(lang, `lang.${o.language}`)}</span>
+                  <a href={o.base_url} rel="noopener external">
+                    {host(o.base_url)}
+                  </a>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+  </div>
+
+</Base>
+
+<style>
+  .intro {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: clamp(1.75rem, 1rem + 2vw, 2.75rem);
+    max-width: var(--measure);
+  }
+  .policy {
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--rule);
+  }
+  .tiers {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2.25rem clamp(1.5rem, 1rem + 2vw, 3rem);
+    border-top: 1px solid var(--rule-strong);
+    padding-top: 1.5rem;
+  }
+  @media (max-width: 64rem) {
+    .tiers {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 40rem) {
+    .tiers {
+      grid-template-columns: 1fr;
+    }
+  }
+  .tier h2 {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    font-size: var(--step-0);
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .count {
+    font-size: var(--step--1);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .outlet-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .outlet-list li {
+    display: grid;
+    gap: 0.05rem;
+    padding-block: 0.6rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .name {
+    font-weight: 600;
+  }
+  .meta {
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+  }
+  .tag {
+    min-width: 3.5em;
+  }
+  .note {
+    max-width: var(--measure);
+    margin-bottom: 1rem;
+  }
+</style>

@@ -1,0 +1,259 @@
+---
+/**
+ * The first viewport: twelve months of daily captures, server-rendered SVG, zero JS.
+ * A day before monitoring began, a monitored day with nothing captured, and a day with captures
+ * are three different marks; the latest day in the dataset carries a frame that never touches
+ * the disc inside it. Mark area is proportional to the day's volume; the legend carries the scale.
+ */
+import type { CaptureVolume } from "../schemas/files.ts";
+import { dhakaDate, monthName, num, weekdayInitials, date as fmtDate } from "../i18n/format.ts";
+import { t, type Locale } from "../i18n/ui.ts";
+
+interface Props {
+  lang: Locale;
+  volume: CaptureVolume;
+  generatedAt: string;
+}
+const { lang, volume, generatedAt } = Astro.props;
+
+const byDate = new Map(volume.series.map((p) => [p.date, p]));
+const started = volume.series.find((p) => p.snapshots > 0)?.date ?? null;
+const last = volume.series.length ? volume.series[volume.series.length - 1]!.date : null;
+const max = Math.max(1, ...volume.series.map((p) => p.snapshots));
+const end = dhakaDate(generatedAt);
+const [ey, em] = end.split("-").map(Number) as [number, number];
+
+const W = 24; // cell width
+const H = 19; // cell height: rows tighter than columns, the grid reads as weeks
+const R_MIN = 2.2;
+const R_MAX = 6.8; // frame inset is 1.5, so the frame's half-height is 8: a visible gap always remains
+const radius = (v: number) => R_MIN + (R_MAX - R_MIN) * Math.sqrt(v / max);
+const iso = (y: number, m: number, d: number) => `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+
+type Kind = "future" | "before" | "zero" | "capture";
+
+const months = Array.from({ length: 12 }, (_, i) => {
+  const idx = ey * 12 + (em - 1) - (11 - i);
+  const y = Math.floor(idx / 12);
+  const m = idx % 12;
+  const daysIn = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const lead = (new Date(Date.UTC(y, m, 1)).getUTCDay() + 1) % 7; // Saturday-first, as Bangladeshi calendars print
+  let total = 0;
+  const days = Array.from({ length: daysIn }, (_, j) => {
+    const key = iso(y, m, j + 1);
+    const v = byDate.get(key)?.snapshots ?? 0;
+    total += v;
+    const kind: Kind = last && key > last ? "future" : !started || key < started ? "before" : v > 0 ? "capture" : "zero";
+    return { col: (lead + j) % 7, row: Math.floor((lead + j) / 7), key, kind, v };
+  });
+  return { i, days, total, label: monthName(lang, y, m) };
+});
+const rowsMax = Math.max(...months.map((mo) => Math.max(...mo.days.map((d) => d.row)) + 1));
+
+// Size key: three reference volumes on the same scale as the calendar.
+const nice = (v: number) => {
+  if (v <= 10) return Math.max(1, Math.round(v));
+  const p = 10 ** Math.floor(Math.log10(v));
+  return Math.round(v / p) * p;
+};
+const scale = [...new Set([nice(max / 16), nice(max / 4), max])].filter((v) => v > 0 && v <= max);
+const weekdays = weekdayInitials(lang);
+---
+
+<figure class="cal" aria-labelledby="cal-title">
+  <figcaption class="cal-head">
+    <h2 id="cal-title">{t(lang, "overview.calendar")}</h2>
+    <p class="muted small">
+      {
+        started ? (
+          <>
+            {t(lang, "overview.began")}{" "}
+            <time datetime={started}>{fmtDate(lang, `${started}T12:00:00+06:00`)}</time>.{" "}
+            {t(lang, "overview.calendarNote")}
+          </>
+        ) : (
+          t(lang, "overview.notBegun")
+        )
+      }
+    </p>
+  </figcaption>
+
+  <div class="months">
+    {
+      months.map((mo) => (
+        <section class="month" data-recent={mo.i >= 8 ? "" : undefined} style={`--o:${11 - mo.i}`} aria-label={mo.label}>
+          <h3 class="month-name">
+            <span>{mo.label}</span>
+            {mo.total > 0 && <span class="num muted">{num(lang, mo.total)}</span>}
+          </h3>
+          <div class="wds" aria-hidden="true">
+            {weekdays.map((w) => (
+              <span>{w}</span>
+            ))}
+          </div>
+          <svg
+            viewBox={`0 0 ${W * 7} ${H * rowsMax}`}
+            role="img"
+            aria-label={`${mo.label}: ${num(lang, mo.total)} ${t(lang, "overview.legend.captures")}`}
+          >
+            {mo.days.map((day) => {
+              const cx = day.col * W + W / 2;
+              const cy = day.row * H + H / 2;
+              return (
+                <g class={day.kind}>
+                  <title>{`${fmtDate(lang, `${day.key}T12:00:00+06:00`)}: ${num(lang, day.v)} ${t(lang, "overview.legend.captures")}`}</title>
+                  {day.kind === "capture" && <circle cx={cx} cy={cy} r={radius(day.v).toFixed(2)} />}
+                  {day.kind === "zero" && <circle cx={cx} cy={cy} r="2.4" />}
+                  {day.kind === "before" && <circle cx={cx} cy={cy} r="1.3" />}
+                  {day.key === last && <rect x={cx - W / 2 + 1.5} y={cy - H / 2 + 1.5} width={W - 3} height={H - 3} class="today" />}
+                </g>
+              );
+            })}
+          </svg>
+        </section>
+      ))
+    }
+  </div>
+
+  <div class="legend small">
+    <ul class="scale" aria-label={t(lang, "overview.legend.scale")}>
+      <li class="scale-label">{t(lang, "overview.legend.scale")}</li>
+      {
+        scale.map((v) => {
+          const r = radius(v);
+          return (
+            <li>
+              <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                <circle cx="8" cy="8" r={r.toFixed(2)} class="k-capture" />
+              </svg>
+              <span class="num">{num(lang, v)}</span>
+            </li>
+          );
+        })
+      }
+    </ul>
+    <ul class="keys">
+      <li><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="2.4" class="k-zero" /></svg>{t(lang, "overview.legend.zero")}</li>
+      <li><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="1.8" class="k-before" /></svg>{t(lang, "overview.legend.before")}</li>
+      <li><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="1.5" y="3" width="13" height="10" class="k-today" /></svg>{t(lang, "overview.legend.today")}</li>
+    </ul>
+  </div>
+</figure>
+
+<style>
+  .cal {
+    margin: 0;
+  }
+  .cal-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .cal-head p {
+    max-width: 62ch;
+  }
+  .months {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1.1rem 1.5rem;
+  }
+  @media (max-width: 64rem) {
+    .months {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  /* Phones: the latest four months, newest first; the full series is in the daily log and the dataset. */
+  @media (max-width: 40rem) {
+    .months {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    .month {
+      order: var(--o);
+    }
+    .month:not([data-recent]) {
+      display: none;
+    }
+  }
+  .month-name {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: var(--step--1);
+    font-weight: 600;
+    line-height: 1.5;
+    padding-bottom: 0.2rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .month-name .num {
+    font-weight: 500;
+  }
+  .wds {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 0.6875rem;
+    line-height: 1.9;
+    color: var(--ink-3);
+  }
+  .month svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  .capture circle,
+  .k-capture {
+    fill: var(--capture);
+  }
+  .zero circle,
+  .k-zero {
+    fill: none;
+    stroke: var(--ink-3);
+    stroke-width: 1;
+  }
+  .before circle,
+  .k-before {
+    fill: var(--ink-3);
+    opacity: 0.5;
+  }
+  .today,
+  .k-today {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 1.25;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem 2rem;
+    padding-top: 0.75rem;
+    margin-top: 1rem;
+    border-top: 1px solid var(--rule);
+    color: var(--ink-2);
+  }
+  .legend ul {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 1.25rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .legend svg {
+    flex: none;
+  }
+  .scale-label {
+    color: var(--ink);
+    font-weight: 500;
+  }
+</style>

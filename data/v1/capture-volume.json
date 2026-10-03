@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-09-24T16:26:43.651474Z",
+  "interval": "day",
+  "schema_version": "1.0.0",
+  "series": [
+    {
+      "articles_first_seen": 7071,
+      "date": "2026-09-24",
+      "snapshots": 6285
+    }
+  ],
+  "suppressed": false,
+  "timezone": "Asia/Dhaka"
+}

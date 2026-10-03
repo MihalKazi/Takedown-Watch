@@ -1,0 +1,193 @@
+---
+import "../styles/global.css";
+import { loadDataset } from "../schemas/dataset.ts";
+import { dateTime } from "../i18n/format.ts";
+import { href, otherLocale, t, type Locale, type Route } from "../i18n/ui.ts";
+
+interface Props {
+  lang: Locale;
+  route: Route;
+  title: string;
+  description?: string;
+}
+
+const { lang, route, title, description } = Astro.props;
+const other = otherLocale(lang);
+const d = loadDataset();
+const nav: Route[] = ["", "outlets", "methodology", "data"];
+const pageTitle = route === "" ? `${t(lang, "site.name")}: ${title}` : `${title} · ${t(lang, "site.name")}`;
+---
+
+<!doctype html>
+<html lang={lang} dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description ?? t(lang, "site.tagline")} />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121411" media="(prefers-color-scheme: dark)" />
+    <link rel="alternate" hreflang={other} href={href(other, route)} />
+    <link rel="alternate" hreflang={lang} href={href(lang, route)} />
+    <link rel="icon" href={`${import.meta.env.BASE_URL}favicon.svg`} type="image/svg+xml" />
+  </head>
+  <body>
+    <a class="skip" href="#main">{t(lang, "skip")}</a>
+    <header class="masthead">
+      <div class="wrap masthead-row">
+        <a class="wordmark" href={href(lang, "")} aria-label={t(lang, "site.name")}>
+          <svg class="wordmark-mark" viewBox="0 0 20 20" aria-hidden="true" width="20" height="20">
+            <circle cx="4" cy="4" r="1.6"></circle><circle cx="10" cy="4" r="2.6"></circle><circle cx="16" cy="4" r="1.2"></circle>
+            <circle cx="4" cy="10" r="3.2"></circle><circle cx="10" cy="10" r="1.8"></circle><circle cx="16" cy="10" r="3.4"></circle>
+            <circle cx="4" cy="16" r="2.2" class="empty"></circle><circle cx="10" cy="16" r="1" class="empty"></circle><rect x="13.2" y="13.2" width="5.6" height="5.6" class="today"></rect>
+          </svg>
+          <span>{t(lang, "site.name")}</span>
+        </a>
+        <nav aria-label={t(lang, "nav.label")} class="nav">
+          <ul>
+            {
+              nav.map((r) => (
+                <li>
+                  <a href={href(lang, r)} aria-current={r === route ? "page" : undefined}>
+                    {t(lang, `nav.${r}`)}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+        <a class="lang" href={href(other, route)} hreflang={other} lang={other} aria-label={t(lang, "lang.switchLabel")}>
+          {t(lang, "lang.switch")}
+        </a>
+      </div>
+    </header>
+
+    <main id="main" class="wrap">
+      <slot />
+    </main>
+
+    <footer class="colophon">
+      <div class="wrap colophon-row small">
+        <p>
+          <strong>{t(lang, "site.name")}</strong>. {t(lang, "site.org")} (<a href="https://activaterights.org">activaterights.org</a>). {
+            t(lang, "site.successor")
+          }.
+        </p>
+        <p class="muted num">
+          {t(lang, "footer.dataset")} <time datetime={d.meta.generated_at}>{dateTime(lang, d.meta.generated_at)}</time> · {
+            t(lang, "footer.schema")
+          } {d.meta.schema_version}
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .skip {
+    position: absolute;
+    left: 1rem;
+    top: -3rem;
+    background: var(--paper);
+    padding: 0.5rem 0.75rem;
+    z-index: 10;
+  }
+  .skip:focus {
+    top: 0.5rem;
+  }
+  .masthead {
+    border-bottom: 1px solid var(--rule);
+  }
+  .masthead-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem 2rem;
+    flex-wrap: wrap;
+    min-height: 3.5rem;
+    padding-block: 0.5rem;
+  }
+  .wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--ink);
+    text-decoration: none;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-right: auto;
+  }
+  .wordmark-mark {
+    fill: var(--capture);
+    flex: none;
+  }
+  .wordmark-mark .empty {
+    fill: none;
+    stroke: var(--ink-3);
+    stroke-width: 1;
+  }
+  .wordmark-mark .today {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 1.2;
+  }
+  .nav ul {
+    display: flex;
+    gap: 0.25rem 1.25rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex-wrap: wrap;
+  }
+  .nav a,
+  .lang {
+    color: var(--ink-2);
+    text-decoration: none;
+    font-size: var(--step--1);
+    font-weight: 500;
+    padding-block: 0.35rem;
+    display: inline-block;
+    border-bottom: 2px solid transparent;
+  }
+  .nav a:hover,
+  .lang:hover {
+    color: var(--ink);
+  }
+  .nav a[aria-current="page"] {
+    color: var(--ink);
+    border-bottom-color: var(--capture);
+  }
+  .lang {
+    color: var(--link);
+    border: 1px solid var(--rule);
+    padding: 0.2rem 0.6rem;
+    border-radius: 2px;
+  }
+  .lang:hover {
+    border-color: var(--link);
+    color: var(--link-hover);
+  }
+  main {
+    flex: 1;
+    padding-block: clamp(1.5rem, 1rem + 2vw, 2.75rem) var(--gap-section);
+  }
+  .colophon {
+    border-top: 1px solid var(--rule);
+    color: var(--ink-2);
+  }
+  .colophon-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem 2rem;
+    padding-block: 1.25rem 1.75rem;
+  }
+  @media (max-width: 40rem) {
+    .masthead-row {
+      gap: 0.25rem 1rem;
+    }
+    .nav {
+      order: 3;
+      width: 100%;
+    }
+  }
+</style>

@@ -1,0 +1,23 @@
+---
+/** Root: Bangla is the default locale. A meta refresh works from any static file server. */
+import { href } from "../i18n/ui.ts";
+const bn = href("bn", "");
+const en = href("en", "");
+---
+
+<!doctype html>
+<html lang="bn">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="refresh" content={`0; url=${bn}`} />
+    <link rel="canonical" href={bn} />
+    <title>টেকডাউন ওয়াচ · Takedown Watch</title>
+    <style>
+      body { font-family: system-ui, sans-serif; padding: 2rem; line-height: 1.7; }
+    </style>
+  </head>
+  <body>
+    <p><a href={bn}>টেকডাউন ওয়াচ (বাংলা)</a> · <a href={en} lang="en">Takedown Watch (English)</a></p>
+  </body>
+</html>

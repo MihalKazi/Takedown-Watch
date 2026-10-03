@@ -1,0 +1,132 @@
+{
+  "generated_at": "2026-09-24T16:26:43.651474Z",
+  "outlets": [
+    {
+      "base_url": "https://www.banglatribune.com",
+      "language": "bn",
+      "name": "Bangla Tribune",
+      "slug": "banglatribune",
+      "tier": "online_native"
+    },
+    {
+      "base_url": "https://www.bd-pratidin.com",
+      "language": "bn",
+      "name": "Bangladesh Pratidin",
+      "slug": "bd-pratidin",
+      "tier": "bangla_mass"
+    },
+    {
+      "base_url": "https://bdnews24.com",
+      "language": "en",
+      "name": "bdnews24.com",
+      "slug": "bdnews24",
+      "tier": "online_native"
+    },
+    {
+      "base_url": "https://www.bssnews.net",
+      "language": "en",
+      "name": "Bangladesh Sangbad Sangstha (BSS)",
+      "slug": "bssnews",
+      "tier": "state_wire"
+    },
+    {
+      "base_url": "https://www.dailyamardesh.com",
+      "language": "bn",
+      "name": "Amar Desh",
+      "slug": "dailyamardesh",
+      "tier": "bangla_other"
+    },
+    {
+      "base_url": "https://www.dailyinqilab.com",
+      "language": "bn",
+      "name": "Daily Inqilab",
+      "slug": "dailyinqilab",
+      "tier": "bangla_other"
+    },
+    {
+      "base_url": "https://dailynayadiganta.com",
+      "language": "bn",
+      "name": "Naya Diganta",
+      "slug": "dailynayadiganta",
+      "tier": "bangla_other"
+    },
+    {
+      "base_url": "https://www.dhakatribune.com",
+      "language": "en",
+      "name": "Dhaka Tribune",
+      "slug": "dhakatribune",
+      "tier": "english"
+    },
+    {
+      "base_url": "https://www.jagonews24.com",
+      "language": "bn",
+      "name": "Jago News 24",
+      "slug": "jagonews24",
+      "tier": "online_native"
+    },
+    {
+      "base_url": "https://www.jugantor.com",
+      "language": "bn",
+      "name": "Jugantor",
+      "slug": "jugantor",
+      "tier": "bangla_mass"
+    },
+    {
+      "base_url": "https://www.kalerkantho.com",
+      "language": "bn",
+      "name": "Kaler Kantho",
+      "slug": "kalerkantho",
+      "tier": "bangla_mass"
+    },
+    {
+      "base_url": "https://netra.news",
+      "language": "en",
+      "name": "Netra News",
+      "slug": "netra",
+      "tier": "independent"
+    },
+    {
+      "base_url": "https://www.newagebd.net",
+      "language": "en",
+      "name": "New Age",
+      "slug": "newagebd",
+      "tier": "english"
+    },
+    {
+      "base_url": "https://www.prothomalo.com",
+      "language": "bn",
+      "name": "Prothom Alo",
+      "slug": "prothomalo",
+      "tier": "bangla_mass"
+    },
+    {
+      "base_url": "https://samakal.com",
+      "language": "bn",
+      "name": "Samakal",
+      "slug": "samakal",
+      "tier": "bangla_mass"
+    },
+    {
+      "base_url": "https://www.tbsnews.net",
+      "language": "en",
+      "name": "The Business Standard",
+      "slug": "tbsnews",
+      "tier": "english"
+    },
+    {
+      "base_url": "https://www.thedailystar.net",
+      "language": "en",
+      "name": "The Daily Star",
+      "slug": "thedailystar",
+      "tier": "english"
+    },
+    {
+      "base_url": "https://thedissent.news",
+      "language": "en",
+      "name": "The Dissent",
+      "slug": "thedissent",
+      "tier": "independent"
+    }
+  ],
+  "schema_version": "1.0.0"
+}

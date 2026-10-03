@@ -1,0 +1,165 @@
+---
+import Base from "../../layouts/Base.astro";
+import CaptureCalendar from "../../components/CaptureCalendar.astro";
+import { loadDataset } from "../../schemas/dataset.ts";
+import { dateTime, num, pct } from "../../i18n/format.ts";
+import { LOCALES, t, type Locale } from "../../i18n/ui.ts";
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Locale;
+const d = loadDataset();
+const all = d.coverage.groups.find((g) => g.group === "all")!;
+const min = d.meta.min_group_outlets;
+
+type Row = { label: string; value: string | null; sub?: string; note?: string };
+const withheld = null;
+const figures: Row[] = [
+  { label: t(lang, "t.captured"), value: all.suppressed ? withheld : num(lang, all.articles_captured!) },
+  { label: t(lang, "t.snapshots"), value: all.suppressed ? withheld : num(lang, all.snapshots!) },
+  {
+    label: t(lang, "t.archived"),
+    value: all.suppressed ? withheld : num(lang, all.snapshots_archived!),
+    ...(all.archive_rate !== null && all.snapshots_archived! > 0 ? { sub: pct(lang, all.archive_rate) } : {}),
+    ...(!all.suppressed && all.snapshots! > 0 && all.snapshots_archived === 0 ? { note: t(lang, "t.archiveNone") } : {}),
+  },
+];
+const cohort: Row[] = [
+  { label: t(lang, "t.outletsMonitored"), value: num(lang, d.coverage.outlets_monitored) },
+];
+const lastRun = d.meta.last_capture_at ? dateTime(lang, d.meta.last_capture_at) : t(lang, "none");
+---
+
+<Base lang={lang} route="" title={t(lang, "overview.title")}>
+  <header class="intro">
+    <h1>{t(lang, "overview.title")}</h1>
+    <p class="lede muted">{t(lang, "overview.lede")}</p>
+  </header>
+
+  <div class="calendar-band">
+    <CaptureCalendar lang={lang} volume={d.volume} generatedAt={d.meta.generated_at} />
+  </div>
+
+  <section class="section totals" aria-labelledby="totals">
+    <div class="totals-head">
+      <h2 id="totals">{t(lang, "overview.totals")}</h2>
+      <p class="last-run">
+        <span class="muted">{t(lang, "t.lastCapture")}</span>{" "}
+        {d.meta.last_capture_at ? <time class="num" datetime={d.meta.last_capture_at}>{lastRun}</time> : lastRun}
+      </p>
+    </div>
+    <div class="ledgers">
+      {
+        [figures, cohort].map((rows) => (
+          <dl class="ledger-list">
+            {rows.map((row) => (
+              <div class="ledger-row">
+                <dt>
+                  {row.label}
+                  {row.note && <span class="row-note">{row.note}</span>}
+                </dt>
+                <dd class="num">
+                  {row.value === null ? (
+                    <span class="ghost">
+                      {t(lang, "withheld")}: {t(lang, "withheld.reason", { min: num(lang, min) })}
+                    </span>
+                  ) : (
+                    <>
+                      {row.value}
+                      {row.sub && <span class="sub muted">{row.sub}</span>}
+                    </>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ))
+      }
+    </div>
+  </section>
+
+</Base>
+
+<style>
+  .intro {
+    display: grid;
+    gap: 0.4rem 3rem;
+    align-items: end;
+    margin-bottom: clamp(1.25rem, 0.75rem + 1.5vw, 1.75rem);
+  }
+  @media (min-width: 64rem) {
+    .intro {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+    .intro .lede {
+      padding-bottom: 0.35rem;
+    }
+  }
+  .totals .totals-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.25rem 2rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--rule-strong);
+    margin-bottom: 0.5rem;
+  }
+  .last-run {
+    font-weight: 600;
+  }
+  .lede {
+    max-width: var(--measure);
+    font-size: var(--step-0);
+  }
+  .calendar-band {
+    padding-block: 1.1rem 0;
+    border-top: 1px solid var(--rule-strong);
+  }
+  .totals {
+    margin-top: clamp(1.75rem, 1rem + 2vw, 2.5rem);
+  }
+  .ledgers {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 clamp(1.5rem, 1rem + 3vw, 4rem);
+  }
+  @media (max-width: 48rem) {
+    .ledgers {
+      grid-template-columns: 1fr;
+    }
+  }
+  .ledger-list {
+    margin: 0;
+  }
+  .ledger-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    padding-block: 0.7rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .ledger-row dt {
+    color: var(--ink-2);
+  }
+  .ledger-row dd {
+    margin: 0;
+    font-size: var(--step-1);
+    font-weight: 600;
+    text-align: end;
+  }
+  .row-note {
+    display: block;
+    font-size: var(--step--1);
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .sub {
+    font-size: var(--step--1);
+    font-weight: 500;
+    margin-inline-start: 0.6em;
+  }
+</style>

@@ -1,0 +1,129 @@
+---
+import Base from "../../layouts/Base.astro";
+import { loadDataset } from "../../schemas/dataset.ts";
+import { num } from "../../i18n/format.ts";
+import { LOCALES, t, type Locale } from "../../i18n/ui.ts";
+import { Content as En } from "../../content/methodology/en.md";
+import { Content as Bn } from "../../content/methodology/bn.md";
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Locale;
+const d = loadDataset();
+const Body = lang === "bn" ? Bn : En;
+const state: [string, string][] = [
+  [t(lang, "t.outletsMonitored"), num(lang, d.coverage.outlets_monitored)],
+  [t(lang, "t.withSources"), num(lang, d.coverage.outlets_with_sources)],
+  [t(lang, "t.contributing"), num(lang, d.coverage.outlets_contributing)],
+  [t(lang, "method.window"), t(lang, "method.hours", { n: num(lang, d.meta.capture_window_hours) })],
+  [t(lang, "method.vantage"), num(lang, d.meta.vantages.length)],
+  [t(lang, "method.pipeline"), d.meta.pipeline_version],
+  [t(lang, "method.extractor"), d.meta.extractor_version],
+  [t(lang, "method.normaliser"), d.meta.normaliser_version],
+];
+---
+
+<Base lang={lang} route="methodology" title={t(lang, "method.title")}>
+  <div class="method">
+    <article class="prose">
+      <h1>{t(lang, "method.title")}</h1>
+      <Body />
+    </article>
+    <aside class="state" aria-labelledby="state">
+      <h2 id="state">{t(lang, "method.state")}</h2>
+      <dl>
+        {
+          state.map(([k, v]) => (
+            <div>
+              <dt>{k}</dt>
+              <dd class="num">
+                <span lang={/^[\x00-\x7F]+$/.test(v) && !/^\d+$/.test(v) ? "en" : undefined}>{v}</span>
+              </dd>
+            </div>
+          ))
+        }
+      </dl>
+    </aside>
+  </div>
+</Base>
+
+<style>
+  .method {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 17rem;
+    gap: clamp(2rem, 1rem + 4vw, 5rem);
+    align-items: start;
+  }
+  @media (max-width: 64rem) {
+    .method {
+      grid-template-columns: 1fr;
+    }
+    .state {
+      order: -1;
+    }
+  }
+  .prose {
+    max-width: var(--measure);
+  }
+  .prose h1 {
+    margin-bottom: 1.5rem;
+  }
+  .prose :global(h2) {
+    font-size: var(--step-1);
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule);
+  }
+  .prose :global(p + p) {
+    margin-top: 1rem;
+  }
+  .prose :global(ul) {
+    list-style: disc;
+    margin: 0;
+    padding-inline-start: 1.25rem;
+  }
+  .prose :global(li + li) {
+    margin-top: 0.55rem;
+  }
+  .prose :global(li::marker) {
+    color: var(--capture);
+  }
+  .prose :global(code) {
+    font-size: 0.92em;
+    background: var(--paper-2);
+    padding: 0.05em 0.3em;
+    border-radius: 2px;
+  }
+  .state {
+    position: sticky;
+    top: 1.5rem;
+    border-top: 1px solid var(--rule-strong);
+    padding-top: 0.75rem;
+  }
+  .state h2 {
+    font-size: var(--step--1);
+    margin-bottom: 0.5rem;
+  }
+  .state dl {
+    margin: 0;
+    font-size: var(--step--1);
+    line-height: 1.5;
+  }
+  .state div {
+    display: grid;
+    gap: 0.1rem;
+    padding-block: 0.5rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .state dt {
+    color: var(--ink-2);
+  }
+  .state dd {
+    margin: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+</style>

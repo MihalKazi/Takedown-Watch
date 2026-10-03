@@ -1,0 +1,178 @@
+---
+/**
+ * Coverage by group. A withheld group keeps the table's grid: every figure cell, Contributing
+ * included, is a hatched ghost in its own column, and the reason is stated once, under the name.
+ * On phones each group becomes a stacked block of label/value rows.
+ */
+import HealthMark from "./HealthMark.astro";
+import type { Coverage, ExtractionHealth, GroupCoverage } from "../schemas/files.ts";
+import { num, pct } from "../i18n/format.ts";
+import { t, type Locale } from "../i18n/ui.ts";
+
+interface Props {
+  lang: Locale;
+  coverage: Coverage;
+  health: ExtractionHealth;
+  min: number;
+}
+const { lang, coverage, health, min } = Astro.props;
+
+const healthOf = (g: GroupCoverage) => health.groups.find((h) => h.group === g.group && h.key === g.key);
+const label = (g: GroupCoverage) =>
+  g.group === "all" ? t(lang, "group.all") : g.group === "language" ? t(lang, `lang.${g.key as "bn" | "en"}`) : t(lang, `tier.${g.key as "english"}`);
+const sections: { title: string | null; rows: GroupCoverage[] }[] = [
+  { title: null, rows: coverage.groups.filter((g) => g.group === "all") },
+  { title: t(lang, "group.language"), rows: coverage.groups.filter((g) => g.group === "language") },
+  { title: t(lang, "group.tier"), rows: coverage.groups.filter((g) => g.group === "tier") },
+];
+const cols = {
+  monitored: t(lang, "t.monitored"),
+  contributing: t(lang, "t.contributingShort"),
+  captured: t(lang, "t.captured"),
+  snapshots: t(lang, "t.snapshots"),
+  captureRate: t(lang, "t.captureRate"),
+  archiveRate: t(lang, "t.archiveRate"),
+  health: t(lang, "t.health"),
+};
+const hatchedCols = [cols.contributing, cols.captured, cols.snapshots, cols.captureRate, cols.archiveRate, cols.health];
+const n = (v: number | null) => (v === null ? "" : num(lang, v));
+const r = (v: number | null) => (v === null ? "–" : pct(lang, v));
+const reason = (g: GroupCoverage) =>
+  `${t(lang, "withheld")}: ${g.suppression_reason === "complementary" ? t(lang, "withheld.complementary") : t(lang, "withheld.reason", { min: num(lang, min) })}`;
+const archivedAny = coverage.groups.some((g) => (g.snapshots_archived ?? 0) > 0);
+const ar = (g: GroupCoverage) => (archivedAny ? r(g.archive_rate) : "–");
+---
+
+<div class="table-scroll">
+  <table class="ledger groups">
+    <thead>
+      <tr>
+        <th scope="col">{t(lang, "t.group")}</th>
+        <th scope="col" class="n">{cols.monitored}</th>
+        <th scope="col" class="n">{cols.contributing}</th>
+        <th scope="col" class="n">{cols.captured}</th>
+        <th scope="col" class="n">{cols.snapshots}</th>
+        <th scope="col" class="n">{cols.captureRate}</th>
+        <th scope="col" class="n">{cols.archiveRate}</th>
+        <th scope="col">{cols.health}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        sections.map((s) => (
+          <>
+            {s.title && (
+              <tr class="subhead">
+                <th colspan="8" scope="colgroup">
+                  {s.title}
+                </th>
+              </tr>
+            )}
+            {s.rows.map((g) => {
+              const h = healthOf(g);
+              return (
+                <tr class={g.suppressed ? "withheld" : undefined}>
+                  <th scope="row">
+                    {label(g)}
+                    {g.suppressed && <span class="reason">{reason(g)}</span>}
+                  </th>
+                  <td class="n" data-label={cols.monitored}>
+                    {num(lang, g.outlets_monitored)}
+                  </td>
+                  {g.suppressed ? (
+                    hatchedCols.map((c) => (
+                      <td class="n hatch-cell" data-label={c}>
+                        <span class="hatch" aria-hidden="true" />
+                        <span class="sr-only">{t(lang, "withheld")}</span>
+                      </td>
+                    ))
+                  ) : (
+                    <>
+                      <td class="n" data-label={cols.contributing}>{n(g.outlets_contributing)}</td>
+                      <td class="n" data-label={cols.captured}>{n(g.articles_captured)}</td>
+                      <td class="n" data-label={cols.snapshots}>{n(g.snapshots)}</td>
+                      <td class="n" data-label={cols.captureRate}>{r(g.capture_success_rate)}</td>
+                      <td class="n" data-label={cols.archiveRate}>{ar(g)}</td>
+                      <td data-label={cols.health}>{h?.status && <HealthMark status={h.status} lang={lang} />}</td>
+                    </>
+                  )}
+                </tr>
+              );
+            })}
+          </>
+        ))
+      }
+    </tbody>
+  </table>
+</div>
+{!archivedAny && <p class="table-note">{t(lang, "t.archiveRate")}: {t(lang, "t.archiveNone")}</p>}
+
+<style>
+  .groups {
+    min-width: 46rem;
+  }
+  .withheld th {
+    color: var(--ink-2);
+  }
+  .table-note {
+    margin-top: 0.75rem;
+    font-size: var(--step--1);
+    color: var(--ink-2);
+  }
+  .reason {
+    display: block;
+    font-weight: 400;
+    font-size: 0.75rem;
+    color: var(--ink-2);
+  }
+  /* Phones: one stacked block per group, label/value rows, no sideways scroll. */
+  @media (max-width: 40rem) {
+    .groups {
+      min-width: 0;
+    }
+    .groups thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+    }
+    .groups,
+    .groups tbody,
+    .groups tr,
+    .groups th,
+    .groups td {
+      display: block;
+    }
+    .groups tr {
+      border-bottom: 1px solid var(--rule);
+      padding-block: 0.6rem;
+    }
+    .groups tr.subhead {
+      border-bottom: 1px solid var(--rule-strong);
+      padding-block: 1rem 0.3rem;
+    }
+    .groups th,
+    .groups td {
+      border: 0;
+      padding: 0.1rem 0;
+    }
+    .groups td {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .groups td::before {
+      content: attr(data-label);
+      color: var(--ink-2);
+      font-weight: 400;
+      text-align: start;
+    }
+    .groups tr.withheld td {
+      display: none;
+    }
+    .groups tr.withheld td:first-of-type {
+      display: flex;
+    }
+  }
+</style>

@@ -1,0 +1,411 @@
+# Takedown Watch outlet cohort. Source of truth; synced into the `outlet` table on every run.
+#
+# Hand-edited fields: name, language, base_url, tier, cms, rate_limit_seconds, needs_js,
+#                     retain_html, active, notes
+# Written by `tw discover` (do not hand-edit; re-run discover instead):
+#                     rss_urls, sitemap_urls, limitations, discovery
+#
+# Political balance across this cohort is a methodological requirement. Keep the spread.
+#
+# tier: bangla_mass | bangla_other | english | online_native | state_wire | independent
+# rate_limit_seconds: minimum seconds between requests to this outlet's host.
+#                     Cannot go below TW_DEFAULT_RATE_LIMIT_SECONDS (2.0).
+
+outlets:
+  # --- Bangla mass-circulation ---
+  prothomalo:
+    name: Prothom Alo
+    language: bn
+    base_url: https://www.prothomalo.com
+    tier: bangla_mass
+    rss_urls:
+      - https://www.prothomalo.com/stories.rss
+    sitemap_urls:
+      - https://www.prothomalo.com/news_sitemap.xml
+    limitations: []
+    discovery:
+      checked_at: '2026-09-23T20:24:25.269149+00:00'
+      vantage: local
+      homepage_final_url: https://www.prothomalo.com/
+      homepage_status: 200
+      html_lang: bn
+      detected_cms:
+      robots_sitemaps:
+        - https://www.prothomalo.com/sitemap.xml
+        - https://www.prothomalo.com/news_sitemap.xml
+      candidates_checked: 8
+  kalerkantho:
+    name: Kaler Kantho
+    language: bn
+    base_url: https://www.kalerkantho.com
+    tier: bangla_mass
+    rss_urls: []
+    sitemap_urls: []
+    limitations:
+      - homepage_cf_challenge_403
+      - no_rss
+      - no_sitemap
+    discovery:
+      checked_at: '2026-09-23T20:28:47.286120+00:00'
+      vantage: local
+      homepage_final_url: https://www.kalerkantho.com/
+      homepage_status: 403
+      html_lang:
+      detected_cms:
+      robots_sitemaps:
+        - https://www.kalerkantho.com/sitemap.xml
+        - https://www.kalerkantho.com/daily-sitemap/sitemap-section.xml
+        - https://www.kalerkantho.com/topic.xml
+        - https://www.kalerkantho.com/division.xml
+      candidates_checked: 15
+  jugantor:
+    name: Jugantor
+    language: bn
+    base_url: https://www.jugantor.com
+    tier: bangla_mass
+    rss_urls: []
+    sitemap_urls:
+      - https://www.jugantor.com/news_sitemap.xml
+    limitations:
+      - homepage_cf_challenge_403
+      - no_rss
+    discovery:
+      checked_at: '2026-09-23T20:25:34.678261+00:00'
+      vantage: local
+      homepage_final_url: https://www.jugantor.com/
+      homepage_status: 403
+      html_lang:
+      detected_cms:
+      robots_sitemaps: []
+      candidates_checked: 12
+  samakal:
+    name: Samakal
+    language: bn
+    base_url: https://samakal.com
+    tier: bangla_mass
+    rss_urls:
+      - https://samakal.com/rss
+      - https://samakal.com/feed.xml
+    sitemap_urls:
+      - https://samakal.com/news_sitemap.xml
+    limitations: []
+    discovery:
+      checked_at: '2026-09-23T20:25:34.679265+00:00'
+      vantage: local
+      homepage_final_url: https://samakal.com/
+      homepage_status: 200
+      html_lang: bn
+      detected_cms:
+      robots_sitemaps:
+        - https://samakal.com/sitemap.xml
+        - https://samakal.com/news_sitemap.xml
+      candidates_checked: 8
+  bd-pratidin:
+    name: Bangladesh Pratidin
+    language: bn
+    base_url: https://www.bd-pratidin.com
+    tier: bangla_mass
+
+  # --- Bangla, other alignments ---
+    rss_urls:
+      - https://www.bd-pratidin.com/rss.xml
+    sitemap_urls:
+      - https://www.bd-pratidin.com/sitemap.xml
+    limitations:
+      - no_news_sitemap
+    discovery:
+      checked_at: '2026-09-23T20:28:47.323505+00:00'
+      vantage: local
+      homepage_final_url: https://www.bd-pratidin.com/
+      homepage_status: 200
+      html_lang: bn
+      detected_cms:
+      robots_sitemaps:
+        - https://www.bd-pratidin.com/sitemap.xml
+      candidates_checked: 12
+  dailynayadiganta:
+    name: Naya Diganta
+    language: bn
+    base_url: https://dailynayadiganta.com
+    notes: www. host serves a TLS certificate not valid for www (2026-09-24); apex works.
+    tier: bangla_other
+    rss_urls: []
+    sitemap_urls: []
+    limitations:
+      - no_rss
+      - no_sitemap
+    discovery:
+      checked_at: '2026-09-23T20:28:47.324509+00:00'
+      vantage: local
+      homepage_final_url: https://dailynayadiganta.com/
+      homepage_status: 200
+      html_lang: bn
+      detected_cms:
+      robots_sitemaps:
+        - https://demo.ccdrbd.org/sitemap.xml
+      candidates_checked: 18
+  dailyinqilab:
+    name: Daily Inqilab
+    language: bn
+    base_url: https://www.dailyinqilab.com
+    tier: bangla_other
+    rss_urls: []
+    sitemap_urls:
+      - https://dailyinqilab.com/news-sitemap.xml
+    limitations:
+      - no_rss
+    discovery:
+      checked_at: '2026-09-23T20:25:34.683280+00:00'
+      vantage: local
+      homepage_final_url: https://dailyinqilab.com/
+      homepage_status: 200
+      html_lang: bn
+      detected_cms:
+      robots_sitemaps: []
+      candidates_checked: 7
+  dailyamardesh:
+    name: Amar Desh
+    language: bn
+    base_url: https://www.dailyamardesh.com
+    tier: bangla_other
+
+  # --- English ---
+    rss_urls:
+      - https://www.dailyamardesh.com/feed
+    sitemap_urls:
+      - https://www.dailyamardesh.com/news-sitemap.xml
+    limitations: []
+    discovery:
+      checked_at: '2026-09-23T20:25:40.807125+00:00'
+      vantage: local
+      homepage_final_url: https://www.dailyamardesh.com/
+      homepage_status: 200
+      html_lang: bn
+      detected_cms:
+      robots_sitemaps:
+        - https://www.dailyamardesh.com/sitemap.xml
+        - https://www.dailyamardesh.com/news-sitemap.xml
+        - https://www.dailyamardesh.com/category-sitemap.xml
+        - https://www.dailyamardesh.com/region-sitemap.xml
+      candidates_checked: 5
+  thedailystar:
+    name: The Daily Star
+    language: en
+    base_url: https://www.thedailystar.net
+    tier: english
+    rss_urls: []
+    sitemap_urls:
+      - https://www.thedailystar.net/googlenews.xml
+    limitations:
+      - no_rss
+    discovery:
+      checked_at: '2026-09-23T20:24:25.305237+00:00'
+      vantage: local
+      homepage_final_url: https://www.thedailystar.net/
+      homepage_status: 200
+      html_lang: en
+      detected_cms: Drupal 11 (https://www.drupal.org)
+      robots_sitemaps:
+        - https://www.thedailystar.net/sitemap.xml
+        - https://www.thedailystar.net/googlenews.xml
+      candidates_checked: 8
+    cms: Drupal 11 (https://www.drupal.org)
+  dhakatribune:
+    name: Dhaka Tribune
+    language: en
+    base_url: https://www.dhakatribune.com
+    tier: english
+    rss_urls:
+      - https://www.dhakatribune.com/feed/
+    sitemap_urls:
+      - https://www.dhakatribune.com/news-sitemap.xml
+    limitations: []
+    discovery:
+      checked_at: '2026-09-23T20:25:52.818473+00:00'
+      vantage: local
+      homepage_final_url: https://www.dhakatribune.com/
+      homepage_status: 200
+      html_lang: en
+      detected_cms: Witter v-4.0
+      robots_sitemaps:
+        - https://www.dhakatribune.com/sitemap.xml
+        - https://www.dhakatribune.com/news-sitemap.xml
+      candidates_checked: 3
+    cms: Witter v-4.0
+  tbsnews:
+    name: The Business Standard
+    language: en
+    base_url: https://www.tbsnews.net
+    tier: english
+    rss_urls: []
+    sitemap_urls:
+      - https://www.tbsnews.net/bangla/googlenews.xml
+      - https://www.tbsnews.net/googlenews.xml
+    limitations:
+      - no_rss
+    discovery:
+      checked_at: '2026-09-23T20:25:52.860509+00:00'
+      vantage: local
+      homepage_final_url: https://www.tbsnews.net/
+      homepage_status: 200
+      html_lang: en
+      detected_cms: RSI LAB
+      robots_sitemaps:
+        - https://www.tbsnews.net/sitemap.xml
+        - https://www.tbsnews.net/bangla/googlenews.xml
+        - https://www.tbsnews.net/bangla/sitemap.xml
+        - https://www.tbsnews.net/googlenews.xml
+      candidates_checked: 10
+    cms: RSI LAB
+  newagebd:
+    name: New Age
+    language: en
+    base_url: https://www.newagebd.net
+    tier: english
+
+  # --- Online-native ---
+    rss_urls: []
+    sitemap_urls:
+      - https://www.newagebd.net/sitemap.xml
+    limitations:
+      - no_rss
+      - no_news_sitemap
+    discovery:
+      checked_at: '2026-09-23T20:26:00.890735+00:00'
+      vantage: local
+      homepage_final_url: https://www.newagebd.net/
+      homepage_status: 200
+      html_lang: en
+      detected_cms:
+      robots_sitemaps:
+        - https://www.newagebd.net/sitemap.xml
+        - https://www.newagebd.net/sitemap-news.xml
+      candidates_checked: 15
+  bdnews24:
+    name: bdnews24.com
+    language: en
+    base_url: https://bdnews24.com
+    tier: online_native
+    rss_urls: []
+    sitemap_urls:
+      - https://bdnews24.com/news_sitemap.xml
+    limitations:
+      - no_rss
+    discovery:
+      checked_at: '2026-09-23T20:24:25.306243+00:00'
+      vantage: local
+      homepage_final_url: https://bdnews24.com/
+      homepage_status: 200
+      html_lang: en-us
+      detected_cms:
+      robots_sitemaps:
+        - https://bdnews24.com/sitemap.xml
+        - https://bdnews24.com/news_sitemap.xml
+      candidates_checked: 8
+  banglatribune:
+    name: Bangla Tribune
+    language: bn
+    base_url: https://www.banglatribune.com
+    tier: online_native
+    rss_urls:
+      - https://www.banglatribune.com/feed/
+    sitemap_urls:
+      - https://www.banglatribune.com/news-sitemap.xml
+    limitations: []
+    discovery:
+      checked_at: '2026-09-23T20:26:01.061922+00:00'
+      vantage: local
+      homepage_final_url: https://www.banglatribune.com/
+      homepage_status: 200
+      html_lang: bn
+      detected_cms: Witter v-4.0
+      robots_sitemaps:
+        - https://www.banglatribune.com/sitemap.xml
+        - https://www.banglatribune.com/news-sitemap.xml
+      candidates_checked: 3
+    cms: Witter v-4.0
+  jagonews24:
+    name: Jago News 24
+    language: bn
+    base_url: https://www.jagonews24.com
+    tier: online_native
+
+  # --- State wire ---
+    rss_urls: []
+    sitemap_urls: []
+    limitations:
+      - no_rss
+      - no_sitemap
+    discovery:
+      checked_at: '2026-09-23T20:26:01.252433+00:00'
+      vantage: local
+      homepage_final_url: https://www.jagonews24.com/
+      homepage_status: 200
+      html_lang: bn
+      detected_cms:
+      robots_sitemaps:
+        - https://www.jagonews24.com/sitemaps.xml
+      candidates_checked: 14
+  bssnews:
+    name: Bangladesh Sangbad Sangstha (BSS)
+    language: en
+    base_url: https://www.bssnews.net
+    tier: state_wire
+
+  # --- Independent ---
+    rss_urls: []
+    sitemap_urls: []
+    limitations:
+      - no_rss
+      - no_sitemap
+    discovery:
+      checked_at: '2026-09-23T20:28:47.326518+00:00'
+      vantage: local
+      homepage_final_url: https://www.bssnews.net/
+      homepage_status: 200
+      html_lang:
+      detected_cms:
+      robots_sitemaps:
+        - https://www.bssnews.net/sitemap.xml
+      candidates_checked: 12
+  netra:
+    name: Netra News
+    language: en
+    base_url: https://netra.news
+    tier: independent
+    rss_urls:
+      - https://netra.news/rss/
+    sitemap_urls:
+      - https://netra.news/sitemap.xml
+    limitations:
+      - no_news_sitemap
+    discovery:
+      checked_at: '2026-09-23T20:26:09.570063+00:00'
+      vantage: local
+      homepage_final_url: https://netra.news/
+      homepage_status: 200
+      html_lang: en
+      detected_cms: Ghost 5.85
+      robots_sitemaps:
+        - https://netra.news/sitemap.xml
+      candidates_checked: 7
+    cms: Ghost 5.85
+  thedissent:
+    name: The Dissent
+    language: en
+    base_url: https://thedissent.news
+    tier: independent
+    rss_urls: []
+    sitemap_urls: []
+    limitations:
+      - no_rss
+      - no_sitemap
+    discovery:
+      checked_at: '2026-09-23T20:28:47.327524+00:00'
+      vantage: local
+      homepage_final_url: https://thedissent.news/
+      homepage_status: 200
+      html_lang: en
+      detected_cms:
+      robots_sitemaps: []
+      candidates_checked: 12

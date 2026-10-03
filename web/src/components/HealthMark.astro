@@ -1,0 +1,78 @@
+---
+/**
+ * Health state encoded in form and label, colour third:
+ * ok = filled disc, degraded = half disc, failing = ring struck through, no_data = dotted ring.
+ */
+import type { Health } from "../schemas/files.ts";
+import { t, type Locale } from "../i18n/ui.ts";
+
+interface Props {
+  status: Health;
+  lang: Locale;
+}
+const { status, lang } = Astro.props;
+---
+
+<span class={`health ${status}`}>
+  <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+    {status === "ok" && <circle cx="6" cy="6" r="5" class="fill" />}
+    {
+      status === "degraded" && (
+        <>
+          <circle cx="6" cy="6" r="4.5" class="ring" />
+          <path d="M6 1.5 A4.5 4.5 0 0 0 6 10.5 Z" class="fill" />
+        </>
+      )
+    }
+    {
+      status === "failing" && (
+        <>
+          <circle cx="6" cy="6" r="4.5" class="ring" />
+          <line x1="2.5" y1="9.5" x2="9.5" y2="2.5" class="strike" />
+        </>
+      )
+    }
+    {status === "no_data" && <circle cx="6" cy="6" r="4.5" class="dotted" />}
+  </svg>
+  {t(lang, `health.${status}`)}
+</span>
+
+<style>
+  .health {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    white-space: nowrap;
+  }
+  svg {
+    flex: none;
+  }
+  .fill {
+    fill: currentColor;
+  }
+  .ring,
+  .dotted {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.2;
+  }
+  .dotted {
+    stroke-dasharray: 1.2 1.6;
+  }
+  .strike {
+    stroke: currentColor;
+    stroke-width: 1.4;
+  }
+  .ok svg {
+    color: var(--capture);
+  }
+  .degraded svg {
+    color: var(--warn);
+  }
+  .failing svg {
+    color: var(--fail);
+  }
+  .no_data svg {
+    color: var(--ink-3);
+  }
+</style>
